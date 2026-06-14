@@ -11,6 +11,16 @@ Colonnes canoniques attendues dans le fichier
 - ``size``  : taille, flottant
 - ``side``  : côté agresseur texte, « buy » ou « sell » (insensible à la casse)
 
+Colonne d'identifiant optionnelle
+----------------------------------
+Si le fichier contient une colonne ``id`` ou ``trade_id``, elle est utilisée
+pour la déduplication par identité native (priorité à ``id`` si les deux sont
+présentes). Sans cette colonne, la déduplication sur le quadruplet
+``(ts, price, size, side)`` est **désactivée** — on préfère conserver des
+données potentiellement dupliquées plutôt que détruire silencieusement des
+trades réellement distincts partageant ce quadruplet. Un warning est loggé
+pour signaler que la dédup est désactivée.
+
 Mapping de colonnes optionnel
 -----------------------------
 Passer ``column_map={nom_fichier: nom_canonique}`` pour les fichiers dont les
@@ -33,14 +43,20 @@ lever d'exception — le moteur n'est jamais bloqué :
 - format non supporté (extension inconnue, ``fmt`` non reconnu)
 - pandas ou pyarrow absent (ImportError intercepté)
 - colonnes canoniques manquantes dans le DataFrame
-- valeur manquante/None/NaN pour ts, price ou size
-- ``side`` non reconnu (autre que 'buy'/'sell') : la **ligne** est ignorée
+- valeur manquante/None/NaN/inf pour ts, price ou size
+- ts fractionnaire (ex. 1000.5) : rejeté — pas de troncature silencieuse
+- price <= 0 ou size <= 0 : rejetés (défaut qualité donnée)
+- ``side`` non reconnu (autre que 'buy'/'sell', insensible à la casse) : ligne ignorée
+- Toute exception inattendue dans trades() : itérateur vide (inviolable)
 
 Invariants du port garantis (ADR-004)
 --------------------------------------
 1. Ordre chronologique : tri par ``ts`` croissant avant tout yield.
-2. Absence de doublons : déduplication sur ``(ts, price, size, side)`` après
-   le tri — même schéma que ``ccxt_source.py``.
+2. Déduplication par colonne ``id``/``trade_id`` si présente ; sinon pas de
+   dédup (voir section « Colonne d'identifiant optionnelle » ci-dessus).
+
+Normalisation déléguée à ``ninja_cat.adapters._normalize.normalize_trade`` —
+même contrat que CcxtSource, invariant live == replay garanti.
 
 Décision get_source()
 ----------------------
@@ -56,22 +72,21 @@ import logging
 from pathlib import Path
 from typing import Iterator
 
+from ninja_cat.adapters._normalize import normalize_trade
 from ninja_cat.ingestion import MarketDataPort
-from ninja_cat.schema import Side, Trade
+from ninja_cat.schema import Trade
 
 logger = logging.getLogger(__name__)
-
-# Mapping insensible à la casse : texte fichier → Side canonique.
-_SIDE_MAP: dict[str, Side] = {
-    "buy": Side.BUY,
-    "sell": Side.SELL,
-}
 
 # Extensions reconnues → identifiant de format interne.
 _EXT_TO_FMT: dict[str, str] = {
     ".parquet": "parquet",
     ".csv": "csv",
 }
+
+# Noms de colonnes candidats pour l'identifiant natif du trade.
+# Priorité : 'id' > 'trade_id'.
+_ID_COLUMN_CANDIDATES: tuple[str, ...] = ("id", "trade_id")
 
 
 class FileReplaySource:
@@ -111,34 +126,58 @@ class FileReplaySource:
 
         Respecte les invariants du port :
         - ts monotone croissant (tri sur ts avant yield).
-        - Aucun doublon (déduplication sur (ts, price, size, side) après tri).
-        - Dégradation gracieuse : tout échec produit un itérateur vide.
+        - Déduplication par id natif si disponible ; sinon pas de dédup
+          (voir module docstring pour la politique complète).
+        - Dégradation gracieuse inviolable : TOUTE exception inattendue est
+          capturée ici — trades() ne peut jamais remonter d'exception au moteur.
         """
-        df = self._load_dataframe()
-        if df is None:
+        try:
+            yield from self._trades_inner()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "FileReplaySource.trades(%r) : exception inattendue interceptée "
+                "— flux vide. %s",
+                str(self._path),
+                exc,
+            )
             return
-
-        canonical = list(self._normalise(df))
-        if not canonical:
-            return
-
-        # 1. Tri par ts croissant — garantit la monotonicité avant dédup.
-        canonical.sort(key=lambda t: t.ts)
-
-        # 2. Déduplication : on conserve la première occurrence de chaque
-        #    (ts, price, size, side). L'ordre est préservé car on itère
-        #    après le tri.
-        seen: set[tuple[int, float, float, Side]] = set()
-        for trade in canonical:
-            key = (trade.ts, trade.price, trade.size, trade.side)
-            if key in seen:
-                continue
-            seen.add(key)
-            yield trade
 
     # ------------------------------------------------------------------
     # Méthodes internes
     # ------------------------------------------------------------------
+
+    def _trades_inner(self) -> Iterator[Trade]:
+        """Logique principale — appelée depuis trades() sous try/except global."""
+        df = self._load_dataframe()
+        if df is None:
+            return
+
+        canonical: list[tuple[str | None, Trade]] = list(self._normalise(df))
+        if not canonical:
+            return
+
+        # 1. Tri par ts croissant — garantit la monotonicité avant dédup.
+        canonical.sort(key=lambda pair: pair[1].ts)
+
+        # 2. Déduplication par id natif si disponible.
+        has_ids = any(trade_id is not None for trade_id, _ in canonical)
+        if not has_ids:
+            logger.warning(
+                "FileReplaySource(%r) : aucune colonne 'id'/'trade_id' trouvée "
+                "— déduplication désactivée pour ne pas détruire de données.",
+                str(self._path),
+            )
+            for _, trade in canonical:
+                yield trade
+            return
+
+        seen_ids: set[str] = set()
+        for trade_id, trade in canonical:
+            if trade_id is not None:
+                if trade_id in seen_ids:
+                    continue
+                seen_ids.add(trade_id)
+            yield trade
 
     def _detect_fmt(self) -> str | None:
         """Détecte le format à partir de l'extension ou de ``self._fmt``.
@@ -222,12 +261,17 @@ class FileReplaySource:
             df = df.rename(columns=rename)
         return df
 
-    def _normalise(self, df) -> Iterator[Trade]:
-        """Convertit chaque ligne du DataFrame en ``Trade`` canonique.
+    def _normalise(self, df) -> Iterator[tuple[str | None, Trade]]:
+        """Convertit chaque ligne du DataFrame en ``(trade_id, Trade)`` canonique.
 
-        Une ligne avec un champ manquant, None/NaN, ou un side non reconnu
-        est **ignorée silencieusement** — on ne propage jamais une donnée
-        douteuse (ADR-001), et on ne devine jamais le côté agresseur.
+        La colonne d'id natif (``id`` ou ``trade_id``) est extraite pour
+        permettre la déduplication par identité dans _trades_inner(). Elle peut
+        être None si la colonne est absente ou si la cellule est NaN.
+
+        Une ligne avec un champ manquant, None/NaN/inf, price/size <= 0, ts
+        fractionnaire ou un side non reconnu est **ignorée silencieusement** —
+        on ne propage jamais une donnée douteuse (ADR-001). La normalisation est
+        déléguée à normalize_trade() pour garantir la parité live == replay.
         """
         df = self._apply_column_map(df)
 
@@ -242,58 +286,39 @@ class FileReplaySource:
             )
             return
 
+        # Détecte la colonne d'identifiant natif si elle existe.
+        id_col: str | None = None
+        for candidate in _ID_COLUMN_CANDIDATES:
+            if candidate in df.columns:
+                id_col = candidate
+                break
+
         for _, row in df.iterrows():
-            # --- timestamp ---
-            ts_raw = row.get("ts")
-            if ts_raw is None:
-                continue
-            # pandas peut retourner NaN (float) pour une cellule vide
-            try:
-                import math
-                if isinstance(ts_raw, float) and math.isnan(ts_raw):
-                    continue
-                ts = int(ts_raw)
-            except (TypeError, ValueError):
-                continue
-            if ts <= 0:
+            # Extrait l'id natif si disponible (NaN pandas → None).
+            trade_id: str | None = None
+            if id_col is not None:
+                raw_id = row.get(id_col)
+                # pandas NaN est un float ; on vérifie via pandas isna si possible,
+                # sinon on tente isinstance float NaN.
+                try:
+                    import math as _math
+                    if raw_id is not None and not (
+                        isinstance(raw_id, float) and _math.isnan(raw_id)
+                    ):
+                        trade_id = str(raw_id)
+                except (TypeError, ValueError):
+                    trade_id = None
+
+            trade = normalize_trade(
+                ts_raw=row.get("ts"),
+                price_raw=row.get("price"),
+                size_raw=row.get("size"),
+                side_raw=row.get("side"),
+            )
+            if trade is None:
                 continue
 
-            # --- price ---
-            price_raw = row.get("price")
-            if price_raw is None:
-                continue
-            try:
-                import math as _math
-                if isinstance(price_raw, float) and _math.isnan(price_raw):
-                    continue
-                price = float(price_raw)
-            except (TypeError, ValueError):
-                continue
-
-            # --- size ---
-            size_raw = row.get("size")
-            if size_raw is None:
-                continue
-            try:
-                import math as _math2
-                if isinstance(size_raw, float) and _math2.isnan(size_raw):
-                    continue
-                size = float(size_raw)
-            except (TypeError, ValueError):
-                continue
-
-            # --- side agresseur ---
-            # On utilise le côté tel que fourni par le fichier (source native).
-            # Aucune heuristique : si le champ est absent ou non reconnu, la
-            # ligne est ignorée (règle ADR-001 / zéro compromis sur la qualité).
-            side_raw = row.get("side")
-            if not isinstance(side_raw, str):
-                continue
-            side = _SIDE_MAP.get(side_raw.lower())
-            if side is None:
-                continue
-
-            yield Trade(ts=ts, price=price, size=size, side=side)
+            yield trade_id, trade
 
 
 # ------------------------------------------------------------------

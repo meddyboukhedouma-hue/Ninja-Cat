@@ -8,13 +8,19 @@ Dégradation gracieuse (miroir d'agentdb.py) :
 - exchange_id inconnu de ccxt       → idem.
 - fetch_trades lève (réseau, timeout, exchange down, rate-limit) → idem.
 - Un trade ccxt malformé (timestamp ou side manquant/None) → ignoré silencieusement.
+- Toute exception inattendue dans trades()                    → itérable vide.
 Dans tous les cas le moteur n'est jamais bloqué par l'indisponibilité de la source.
 
 Invariants du port garantis ici (ADR-004) :
 1. Ordre chronologique (ts croissant) : on trie par ts avant de yield.
-2. Absence de doublons : on déduplique sur (ts, price, size, side) après le tri.
-   ccxt peut renvoyer le même trade plusieurs fois en cas de pagination partielle
-   ou de rollover de fenêtre ; le dedup est donc nécessaire.
+2. Déduplication :
+   - Si le trade ccxt possède un champ 'id' non-None, on déduplique sur cet
+     identifiant natif. C'est l'identité unique d'un trade côté exchange ; cela
+     couvre exactement le cas de pagination partielle / rollover de fenêtre.
+   - Sans 'id' disponible (None ou absent), on NE déduplique PAS sur le
+     quadruplet (ts, price, size, side) : cela détruirait des trades réellement
+     distincts qui partagent ce quadruplet. On logue un warning pour signaler
+     que la dédup est désactivée. Le tri garantit la monotonicité.
 
 Mapping CCXT → Trade canonique :
   ccxt['timestamp'] (int, ms UTC)      → Trade.ts
@@ -22,10 +28,15 @@ Mapping CCXT → Trade canonique :
   ccxt['amount']   (float)             → Trade.size
   ccxt['side']     ('buy' | 'sell')    → Trade.side (Side agresseur natif de ccxt)
 
-Fallback côté : ccxt expose le côté agresseur nativement pour la majorité des
+Côté agresseur : ccxt expose le côté agresseur nativement pour la majorité des
 exchanges (`takerOrMaker` == 'taker'). On utilise directement ce champ 'side'
-sans heuristique. Si 'side' est absent ou None, le trade est **ignoré** — on ne
-devine jamais le côté (règle portée par ADR-001 : zéro compromis sur la qualité).
+sans heuristique. ccxt renvoie ce champ en minuscules ('buy'/'sell') ; la
+normalisation applique .lower() systématiquement pour garantir la cohérence
+inter-adapters (cf. _normalize.py). Si 'side' est absent ou non reconnu, le
+trade est **ignoré** — on ne devine jamais le côté (ADR-001).
+
+Normalisation déléguée à ``ninja_cat.adapters._normalize.normalize_trade`` —
+même contrat que FileReplaySource, invariant live == replay garanti.
 """
 
 from __future__ import annotations
@@ -33,15 +44,11 @@ from __future__ import annotations
 import logging
 from typing import Iterator
 
+from ninja_cat.adapters._normalize import normalize_trade
 from ninja_cat.ingestion import MarketDataPort
-from ninja_cat.schema import Side, Trade
+from ninja_cat.schema import Trade
 
 logger = logging.getLogger(__name__)
-
-_SIDE_MAP: dict[str, Side] = {
-    "buy": Side.BUY,
-    "sell": Side.SELL,
-}
 
 
 class CcxtSource:
@@ -86,34 +93,61 @@ class CcxtSource:
 
         Respecte les invariants du port :
         - ts monotone croissant (tri sur ts avant yield).
-        - Aucun doublon (déduplication sur (ts, price, size, side) après tri).
-        - Dégradation gracieuse : tout échec produit un itérateur vide.
+        - Déduplication sur l'id natif ccxt quand disponible (voir module
+          docstring pour la politique complète).
+        - Dégradation gracieuse inviolable : TOUTE exception inattendue est
+          capturée ici — trades() ne peut jamais remonter d'exception au moteur.
         """
-        raw = self._fetch_raw()
-        if not raw:
+        try:
+            yield from self._trades_inner()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "CcxtSource.trades() : exception inattendue interceptée — flux vide. %s",
+                exc,
+            )
             return
-
-        canonical = list(self._normalise(raw))
-        if not canonical:
-            return
-
-        # 1. Tri par ts croissant — garantit la monotonicité avant dédup.
-        canonical.sort(key=lambda t: t.ts)
-
-        # 2. Déduplication : on conserve la première occurrence de chaque
-        #    (ts, price, size, side). Un set de tuples suffit ; l'ordre est
-        #    préservé car on itère après le tri.
-        seen: set[tuple[int, float, float, Side]] = set()
-        for trade in canonical:
-            key = (trade.ts, trade.price, trade.size, trade.side)
-            if key in seen:
-                continue
-            seen.add(key)
-            yield trade
 
     # ------------------------------------------------------------------
     # Méthodes internes
     # ------------------------------------------------------------------
+
+    def _trades_inner(self) -> Iterator[Trade]:
+        """Logique principale — appelée depuis trades() sous try/except global."""
+        raw = self._fetch_raw()
+        if not raw:
+            return
+
+        canonical: list[tuple[str | None, Trade]] = list(self._normalise(raw))
+        if not canonical:
+            return
+
+        # 1. Tri par ts croissant — garantit la monotonicité avant dédup.
+        canonical.sort(key=lambda pair: pair[1].ts)
+
+        # 2. Déduplication par id natif ccxt quand disponible.
+        #    Sans id : on ne déduplique pas sur le quadruplet (évite de perdre
+        #    des trades réellement distincts qui partagent ts/price/size/side).
+        has_ids = any(trade_id is not None for trade_id, _ in canonical)
+        if not has_ids:
+            logger.warning(
+                "CcxtSource(%r, %r) : aucun 'id' natif disponible dans les trades ccxt "
+                "— déduplication désactivée pour ne pas détruire de données.",
+                self._exchange_id,
+                self._symbol,
+            )
+            for _, trade in canonical:
+                yield trade
+            return
+
+        seen_ids: set[str] = set()
+        for trade_id, trade in canonical:
+            if trade_id is not None:
+                if trade_id in seen_ids:
+                    continue
+                seen_ids.add(trade_id)
+            # trade_id is None parmi une liste qui a d'autres ids : on le passe
+            # sans dédup (ne peut pas être identifié).
+            yield trade
 
     def _build_exchange(self) -> object | None:
         """Construit l'objet exchange ccxt. Retourne None si ccxt est absent
@@ -171,56 +205,37 @@ class CcxtSource:
 
         return result
 
-    def _normalise(self, raw: list[dict]) -> Iterator[Trade]:
-        """Convertit chaque dict ccxt en Trade canonique.
+    def _normalise(self, raw: list[dict]) -> Iterator[tuple[str | None, Trade]]:
+        """Convertit chaque dict ccxt en (trade_id, Trade) canonique.
+
+        L'id natif du trade (raw_trade.get('id')) est extrait et porté pour
+        permettre la déduplication par identité dans trades(). Il peut être None
+        si l'exchange ne fournit pas ce champ.
 
         Un trade malformé (timestamp absent/None, side absent/inconnu, prix ou
-        taille absent/None/non numérique) est **ignoré silencieusement** : il
-        ne constitue pas une exception remontante mais il n'est pas transmis
-        non plus — on ne propage jamais une donnée douteuse (ADR-001).
+        taille absent/None/non numérique, valeurs inf/NaN, price/size <= 0) est
+        **ignoré silencieusement** — on ne propage jamais une donnée douteuse
+        (ADR-001). La normalisation est déléguée à normalize_trade() (module
+        _normalize) pour garantir la parité live == replay.
         """
         for raw_trade in raw:
             if not isinstance(raw_trade, dict):
                 continue
 
-            # --- timestamp ---
-            ts_raw = raw_trade.get("timestamp")
-            if ts_raw is None:
-                continue
-            try:
-                ts = int(ts_raw)
-            except (TypeError, ValueError):
-                continue
-            if ts <= 0:
+            # Extrait l'id natif ccxt (peut être str, int, ou None).
+            trade_id_raw = raw_trade.get("id")
+            trade_id: str | None = str(trade_id_raw) if trade_id_raw is not None else None
+
+            trade = normalize_trade(
+                ts_raw=raw_trade.get("timestamp"),
+                price_raw=raw_trade.get("price"),
+                size_raw=raw_trade.get("amount"),  # ccxt nomme ce champ 'amount'
+                side_raw=raw_trade.get("side"),
+            )
+            if trade is None:
                 continue
 
-            # --- price ---
-            price_raw = raw_trade.get("price")
-            if price_raw is None:
-                continue
-            try:
-                price = float(price_raw)
-            except (TypeError, ValueError):
-                continue
-
-            # --- size (ccxt: 'amount') ---
-            size_raw = raw_trade.get("amount")
-            if size_raw is None:
-                continue
-            try:
-                size = float(size_raw)
-            except (TypeError, ValueError):
-                continue
-
-            # --- side agresseur (ccxt le fournit nativement) ---
-            # On n'utilise jamais d'heuristique : si le champ est absent ou non
-            # reconnu, le trade est ignoré (règle ADR-001 / mission data-engineer).
-            side_raw = raw_trade.get("side")
-            side = _SIDE_MAP.get(side_raw) if isinstance(side_raw, str) else None
-            if side is None:
-                continue
-
-            yield Trade(ts=ts, price=price, size=size, side=side)
+            yield trade_id, trade
 
 
 # ------------------------------------------------------------------

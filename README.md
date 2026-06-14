@@ -47,8 +47,19 @@ Pré-requis :
 2. Enregistre-le **au scope user** (pas dans le `.mcp.json` projet, pour éviter
    les chemins absolus committés) :
    `claude mcp add tradingview -s user -- node <chemin>/tradingview-mcp/src/server.js`
-3. Lance **TradingView Desktop** avec `--remote-debugging-port=9222`
-   (abonnement TradingView requis, port local 9222).
+3. Lance **TradingView Desktop** avec le port de debug CDP **9223**
+   (abonnement TradingView requis). On utilise 9223 et non le 9222 par défaut
+   car celui-ci est souvent occupé par un navigateur Chromium (cf. ADR-006) ;
+   le serveur MCP est configuré pour lire 9223.
+   - TradingView est distribué via le Microsoft Store (app UWP) : il se lance
+     avec un argument via l'activation shell
+     `shell:AppsFolder\<PackageFamilyName>!<AppId>` +
+     `--remote-debugging-port=9223` (le package se résout dynamiquement via
+     `Get-AppxPackage`, jamais de version en dur).
+   - Un launcher PowerShell idempotent **`Start-TradingViewCDP.ps1`** automatise
+     ça (ferme les instances → relance sur 9223 → attend que le CDP réponde).
+     Il vit dans le dossier outils `tradingview-mcp` (hors dépôt), à côté du
+     serveur MCP. Voir ADR-006 pour le détail.
 
 ## Setup (quant)
 

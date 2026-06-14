@@ -4,12 +4,15 @@ Tous les appels à ccxt sont mockés. On vérifie :
 - Normalisation correcte des champs ccxt → Trade canonique.
 - Mapping du côté agresseur ('buy' → Side.BUY, 'sell' → Side.SELL).
 - Tri chronologique (ts croissant) imposé par l'adapter.
-- Déduplication (même (ts, price, size, side) → une seule occurrence).
+- Déduplication par id natif ccxt (pas sur le quadruplet — C1).
 - Dégradation gracieuse dans tous les cas d'erreur.
+- Gardes de finitude (NaN, inf) et rejet price/size <= 0 (C2/C4).
+- Harmonisation de casse du side (C5).
 """
 
 from __future__ import annotations
 
+import math
 import sys
 from typing import Iterator
 from unittest.mock import MagicMock, patch
@@ -28,9 +31,13 @@ def _raw(
     price: float = 30_000.0,
     amount: float = 0.5,
     side: str = "buy",
+    trade_id: str | None = None,
 ) -> dict:
     """Construit un trade ccxt synthétique minimal."""
-    return {"timestamp": ts, "price": price, "amount": amount, "side": side}
+    d = {"timestamp": ts, "price": price, "amount": amount, "side": side}
+    if trade_id is not None:
+        d["id"] = trade_id
+    return d
 
 
 def _make_source(raw_trades: list[dict], exchange_id: str = "binance") -> CcxtSource:
@@ -125,40 +132,235 @@ def test_already_sorted_unchanged():
     assert [t.price for t in trades] == [1.0, 2.0, 3.0]
 
 
-# ── Déduplication ────────────────────────────────────────────────────────────
+# ── Déduplication par id natif ccxt (C1) ─────────────────────────────────────
 
-def test_dedup_identical_trades():
-    """Deux trades identiques (même ts, price, size, side) → une seule occurrence."""
-    raw_trade = _raw(ts=1_700_000_000_000, price=30_000.0, amount=0.5, side="buy")
-    raw = [raw_trade, raw_trade]
+def test_dedup_identical_trades_by_id():
+    """Deux trades avec le même id ccxt natif → une seule occurrence (C1).
+
+    Cas pagination : le même trade peut apparaître deux fois lors d'un rollover
+    de fenêtre ou d'une pagination partielle ; la dédup par id natif le gère.
+    """
+    raw = [
+        _raw(ts=1_000, price=10.0, amount=0.5, side="buy", trade_id="trade-abc"),
+        _raw(ts=1_000, price=10.0, amount=0.5, side="buy", trade_id="trade-abc"),  # doublon id
+    ]
     trades = list(_make_source(raw).trades())
     assert len(trades) == 1
 
 
-def test_dedup_keeps_distinct_trades():
-    """Des trades distincts ne sont pas dédupliqués."""
+def test_dedup_distinct_ids_both_kept():
+    """Deux trades distincts avec des ids différents sont TOUS DEUX conservés,
+    même s'ils partagent le même quadruplet (ts, price, size, side) — bug C1 corrigé.
+    """
+    # Avant la correction C1, ces deux trades auraient été fusionnés à tort.
     raw = [
-        _raw(ts=1_000, price=1.0, amount=0.1, side="buy"),
-        _raw(ts=1_000, price=1.0, amount=0.2, side="buy"),   # même ts+price mais size diff
-        _raw(ts=2_000, price=2.0, amount=0.1, side="sell"),
+        _raw(ts=1_000, price=10.0, amount=0.5, side="buy", trade_id="trade-001"),
+        _raw(ts=1_000, price=10.0, amount=0.5, side="buy", trade_id="trade-002"),
+    ]
+    trades = list(_make_source(raw).trades())
+    assert len(trades) == 2, (
+        "Deux trades avec des ids distincts mais même quadruplet doivent être conservés"
+    )
+
+
+def test_dedup_pagination_scenario():
+    """T1 — Scénario pagination : entrée désordonnée où deux occurrences du MÊME id
+    sont séparées par d'autres trades puis rapprochées par le tri.
+
+    Entrée (ordre exchange) : B, A, B (B est le doublon, séparé par A).
+    Après tri par ts : A < B, B.
+    Après dédup par id : A, B (le deuxième B est éliminé).
+    """
+    raw = [
+        _raw(ts=2_000, price=20.0, amount=1.0, side="sell", trade_id="trade-B"),  # 1ère occ B
+        _raw(ts=1_000, price=10.0, amount=0.5, side="buy",  trade_id="trade-A"),
+        _raw(ts=2_000, price=20.0, amount=1.0, side="sell", trade_id="trade-B"),  # doublon B
+    ]
+    trades = list(_make_source(raw).trades())
+    assert len(trades) == 2
+    assert trades[0].ts == 1_000   # A en premier après tri
+    assert trades[1].ts == 2_000   # B une seule fois
+
+
+def test_dedup_keeps_distinct_trades():
+    """Des trades distincts (ids différents, quadruplets différents) ne sont pas dédupliqués."""
+    raw = [
+        _raw(ts=1_000, price=1.0, amount=0.1, side="buy",  trade_id="t1"),
+        _raw(ts=1_000, price=1.0, amount=0.2, side="buy",  trade_id="t2"),  # size diff
+        _raw(ts=2_000, price=2.0, amount=0.1, side="sell", trade_id="t3"),
     ]
     trades = list(_make_source(raw).trades())
     assert len(trades) == 3
 
 
 def test_dedup_after_sort():
-    """Le dedup est appliqué après le tri : doublons de ts différents mais
-    clés identiques (ts, price, size, side) sont aussi dédupliqués."""
+    """La dédup est appliquée APRÈS le tri : le doublon d'id est bien détecté
+    même quand les deux occurrences arrivent à des positions différentes."""
     raw = [
-        _raw(ts=2_000, price=1.0, amount=0.1, side="buy"),
-        _raw(ts=1_000, price=1.0, amount=0.1, side="buy"),
-        _raw(ts=2_000, price=1.0, amount=0.1, side="buy"),   # doublon du premier
+        _raw(ts=2_000, price=1.0, amount=0.1, side="buy", trade_id="dup"),
+        _raw(ts=1_000, price=1.0, amount=0.1, side="buy", trade_id="uniq"),
+        _raw(ts=2_000, price=1.0, amount=0.1, side="buy", trade_id="dup"),   # doublon
     ]
-    # ts=1_000 est distinct de ts=2_000 → 2 trades attendus
+    # Après tri : ts=1_000 (uniq), ts=2_000 (dup), ts=2_000 (dup supprimé).
     trades = list(_make_source(raw).trades())
     assert len(trades) == 2
     assert trades[0].ts == 1_000
     assert trades[1].ts == 2_000
+
+
+def test_no_dedup_without_id_logs_warning(caplog):
+    """Sans id dans les trades, la dédup est désactivée et un warning est loggé."""
+    import logging
+    raw = [
+        _raw(ts=1_000, price=10.0, amount=0.5, side="buy"),  # pas d'id
+        _raw(ts=1_000, price=10.0, amount=0.5, side="buy"),  # même quadruplet, sans id
+    ]
+    with caplog.at_level(logging.WARNING, logger="ninja_cat.adapters.ccxt_source"):
+        trades = list(_make_source(raw).trades())
+    # Les deux trades sont conservés (pas de dédup destructrice).
+    assert len(trades) == 2
+    # Warning loggé.
+    assert any("déduplication désactivée" in r.message for r in caplog.records)
+
+
+# ── Monotonie (T2) ────────────────────────────────────────────────────────────
+
+def test_monotonicity_disordered_with_ties():
+    """T2 — invariant monotonie sur >=5 trades vraiment désordonnés dont deux ex-aequo
+    (même ts). Après tri : all(a.ts <= b.ts) ; l'ordre des ex-aequo est stable (tri stable).
+    """
+    raw = [
+        _raw(ts=5_000, price=5.0, amount=1.0, side="sell", trade_id="t5"),
+        _raw(ts=2_000, price=2.0, amount=1.0, side="buy",  trade_id="t2a"),
+        _raw(ts=1_000, price=1.0, amount=1.0, side="buy",  trade_id="t1"),
+        _raw(ts=2_000, price=2.1, amount=1.0, side="buy",  trade_id="t2b"),  # ex-aequo ts=2_000
+        _raw(ts=3_000, price=3.0, amount=1.0, side="sell", trade_id="t3"),
+    ]
+    trades = list(_make_source(raw).trades())
+    assert len(trades) == 5
+    ts_list = [t.ts for t in trades]
+    # Monotonie croissante.
+    assert all(a <= b for a, b in zip(ts_list, ts_list[1:])), f"ts non croissants : {ts_list}"
+    # Les ex-aequo ts=2_000 sont présents (deux trades distincts).
+    ties = [t for t in trades if t.ts == 2_000]
+    assert len(ties) == 2
+    # Tri stable : t2a (price=2.0) apparaît avant t2b (price=2.1) car ils
+    # étaient dans cet ordre dans l'entrée après normalisation.
+    assert ties[0].price == 2.0
+    assert ties[1].price == 2.1
+
+
+# ── Gardes de finitude, types, price/size <= 0 (T3/C2/C4) ───────────────────
+
+def test_side_uppercase_accepted_after_harmonisation():
+    """T3 — side 'BUY' (majuscule) : après harmonisation .lower() dans normalize_trade,
+    il est accepté et normalisé en Side.BUY.
+    """
+    raw = [_raw(ts=1_000, price=10.0, amount=1.0, side="BUY")]
+    trades = list(_make_source(raw).trades())
+    assert len(trades) == 1
+    assert trades[0].side is Side.BUY
+
+
+def test_side_numeric_ignored():
+    """T3 — side numérique (int 1) : rejeté car ce n'est pas une str."""
+    raw = [{"timestamp": 1_000, "price": 10.0, "amount": 1.0, "side": 1}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_side_empty_string_ignored():
+    """T3 — side '' : non reconnu dans le mapping → ignoré."""
+    raw = [{"timestamp": 1_000, "price": 10.0, "amount": 1.0, "side": ""}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_price_non_numeric_ignored():
+    """T3 — price non numérique ('abc') : ignoré (déclenche la branche except)."""
+    raw = [{"timestamp": 1_000, "price": "abc", "amount": 1.0, "side": "buy"}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_size_non_numeric_ignored():
+    """T3 — size non numérique ('abc') : ignoré."""
+    raw = [{"timestamp": 1_000, "price": 10.0, "amount": "abc", "side": "buy"}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_ts_inf_ignored():
+    """T3 — ts = inf : rejeté par garde isfinite, trades() ne lève jamais."""
+    raw = [{"timestamp": float("inf"), "price": 10.0, "amount": 1.0, "side": "buy"}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_ts_nan_ignored():
+    """T3 — ts = NaN : rejeté par garde isfinite."""
+    raw = [{"timestamp": float("nan"), "price": 10.0, "amount": 1.0, "side": "buy"}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_price_inf_ignored():
+    """T3 — price = inf : rejeté par garde isfinite."""
+    raw = [{"timestamp": 1_000, "price": float("inf"), "amount": 1.0, "side": "buy"}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_price_nan_ignored():
+    """T3 — price = NaN : rejeté par garde isfinite."""
+    raw = [{"timestamp": 1_000, "price": float("nan"), "amount": 1.0, "side": "buy"}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_size_inf_ignored():
+    """T3 — size = inf : rejeté par garde isfinite."""
+    raw = [{"timestamp": 1_000, "price": 10.0, "amount": float("inf"), "side": "buy"}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_size_nan_ignored():
+    """T3 — size = NaN : rejeté par garde isfinite."""
+    raw = [{"timestamp": 1_000, "price": 10.0, "amount": float("nan"), "side": "buy"}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_price_zero_ignored():
+    """C4 — price == 0 : rejeté (défaut qualité donnée)."""
+    raw = [{"timestamp": 1_000, "price": 0.0, "amount": 1.0, "side": "buy"}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_price_negative_ignored():
+    """C4 — price < 0 : rejeté."""
+    raw = [{"timestamp": 1_000, "price": -1.0, "amount": 1.0, "side": "buy"}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_size_zero_ignored():
+    """C4 — size == 0 : rejeté (défaut qualité donnée)."""
+    raw = [{"timestamp": 1_000, "price": 10.0, "amount": 0.0, "side": "buy"}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_size_negative_ignored():
+    """C4 — size < 0 : rejeté."""
+    raw = [{"timestamp": 1_000, "price": 10.0, "amount": -1.0, "side": "buy"}]
+    assert list(_make_source(raw).trades()) == []
+
+
+def test_trades_never_raises_on_bad_data():
+    """T3 — trades() ne lève jamais, même avec un mélange de ts/price/size = inf et NaN."""
+    raw = [
+        {"timestamp": float("inf"), "price": 10.0,           "amount": 1.0,          "side": "buy"},
+        {"timestamp": 1_000,        "price": float("nan"),   "amount": 1.0,          "side": "buy"},
+        {"timestamp": 1_000,        "price": 10.0,           "amount": float("inf"), "side": "buy"},
+        {"timestamp": float("nan"), "price": float("nan"),   "amount": float("nan"), "side": "sell"},
+        _raw(ts=2_000, price=20.0, amount=1.0, side="sell"),  # seul trade valide
+    ]
+    try:
+        result = list(_make_source(raw).trades())
+    except Exception as exc:
+        pytest.fail(f"trades() a levé une exception inattendue : {exc!r}")
+    assert len(result) == 1
+    assert result[0].ts == 2_000
 
 
 # ── Trades malformés ignorés silencieusement ──────────────────────────────────

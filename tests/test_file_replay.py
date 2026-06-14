@@ -4,8 +4,9 @@ Tous les fichiers sont écrits dans tmp_path (pytest). On vérifie :
 - Lecture Parquet et CSV.
 - Mapping de colonnes custom.
 - Tri chronologique (ts croissant).
-- Déduplication sur (ts, price, size, side).
-- Side insensible à la casse.
+- Déduplication par id natif quand disponible (C1) ; pas de dédup sur quadruplet.
+- Side insensible à la casse (C5).
+- Gardes de finitude (NaN, inf, C2) et rejet price/size <= 0 (C4).
 - Conformité au protocole MarketDataPort.
 - Dégradation gracieuse dans tous les cas d'erreur.
 """
@@ -36,9 +37,13 @@ def _canonical_row(
     price: float = 30_000.0,
     size: float = 0.5,
     side: str = "buy",
+    trade_id: str | None = None,
 ) -> dict:
-    """Retourne un dict avec les colonnes canoniques."""
-    return {"ts": ts, "price": price, "size": size, "side": side}
+    """Retourne un dict avec les colonnes canoniques (et 'id' optionnel)."""
+    d = {"ts": ts, "price": price, "size": size, "side": side}
+    if trade_id is not None:
+        d["id"] = trade_id
+    return d
 
 
 def _write_parquet(path: Path, rows: list[dict]) -> Path:
@@ -268,52 +273,119 @@ def test_already_sorted_content_unchanged(tmp_path: Path):
     assert [t.price for t in trades] == [1.0, 2.0, 3.0]
 
 
-# ── Déduplication ─────────────────────────────────────────────────────────────
+# ── Déduplication par id natif (C1) ──────────────────────────────────────────
 
-def test_dedup_identical_rows_csv(tmp_path: Path):
-    """Deux lignes CSV identiques → un seul Trade."""
-    row = _canonical_row(ts=1_000, price=10.0, size=0.5, side="buy")
-    f = _write_csv(tmp_path, [row, row])
+def test_dedup_identical_rows_by_id_csv(tmp_path: Path):
+    """Deux lignes CSV avec le même id → un seul Trade (dédup par id natif)."""
+    rows = [
+        _canonical_row(ts=1_000, price=10.0, size=0.5, side="buy", trade_id="abc"),
+        _canonical_row(ts=1_000, price=10.0, size=0.5, side="buy", trade_id="abc"),
+    ]
+    f = _write_csv(tmp_path, rows)
     trades = list(FileReplaySource(f).trades())
     assert len(trades) == 1
 
 
-def test_dedup_identical_rows_parquet(tmp_path: Path):
-    """Deux lignes Parquet identiques → un seul Trade."""
-    row = _canonical_row(ts=1_000, price=10.0, size=0.5, side="buy")
-    f = _write_parquet(tmp_path, [row, row])
+def test_dedup_identical_rows_by_id_parquet(tmp_path: Path):
+    """Deux lignes Parquet avec le même id → un seul Trade."""
+    rows = [
+        _canonical_row(ts=1_000, price=10.0, size=0.5, side="buy", trade_id="xyz"),
+        _canonical_row(ts=1_000, price=10.0, size=0.5, side="buy", trade_id="xyz"),
+    ]
+    f = _write_parquet(tmp_path, rows)
     trades = list(FileReplaySource(f).trades())
     assert len(trades) == 1
+
+
+def test_dedup_distinct_ids_both_kept(tmp_path: Path):
+    """T1 — Deux trades avec des ids distincts mais même quadruplet sont TOUS DEUX
+    conservés — c'est le bug C1 corrigé : la dédup sur quadruplet les aurait détruits.
+    """
+    rows = [
+        _canonical_row(ts=1_000, price=10.0, size=0.5, side="buy", trade_id="id-001"),
+        _canonical_row(ts=1_000, price=10.0, size=0.5, side="buy", trade_id="id-002"),
+    ]
+    f = _write_csv(tmp_path, rows)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 2, (
+        "Deux trades avec des ids distincts mais même quadruplet doivent être conservés"
+    )
+
+
+def test_dedup_pagination_scenario_file(tmp_path: Path):
+    """T1 — Scénario pagination fichier : entrée désordonnée où deux occurrences
+    du MÊME id sont séparées par d'autres trades puis rapprochées par le tri.
+
+    Entrée (ordre fichier) : B, A, B (B est le doublon, séparé par A).
+    Après tri par ts : A (ts=1000) < B (ts=2000) < B (ts=2000, doublon).
+    Après dédup par id : A, B (le deuxième B est éliminé).
+    """
+    rows = [
+        _canonical_row(ts=2_000, price=20.0, size=1.0, side="sell", trade_id="trade-B"),
+        _canonical_row(ts=1_000, price=10.0, size=0.5, side="buy",  trade_id="trade-A"),
+        _canonical_row(ts=2_000, price=20.0, size=1.0, side="sell", trade_id="trade-B"),  # doublon
+    ]
+    f = _write_csv(tmp_path, rows)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 2
+    assert trades[0].ts == 1_000
+    assert trades[1].ts == 2_000
 
 
 def test_dedup_keeps_distinct_trades(tmp_path: Path):
-    """Des trades distincts ne sont pas dédupliqués."""
+    """Des trades distincts (ids différents, quadruplets différents) ne sont pas dédupliqués."""
     rows = [
-        _canonical_row(ts=1_000, price=1.0, size=0.1, side="buy"),
-        _canonical_row(ts=1_000, price=1.0, size=0.2, side="buy"),   # size différente
-        _canonical_row(ts=2_000, price=2.0, size=0.1, side="sell"),
+        _canonical_row(ts=1_000, price=1.0, size=0.1, side="buy",  trade_id="t1"),
+        _canonical_row(ts=1_000, price=1.0, size=0.2, side="buy",  trade_id="t2"),  # size différente
+        _canonical_row(ts=2_000, price=2.0, size=0.1, side="sell", trade_id="t3"),
     ]
     f = _write_csv(tmp_path, rows)
     trades = list(FileReplaySource(f).trades())
     assert len(trades) == 3
 
 
-def test_dedup_after_sort(tmp_path: Path):
-    """Le dedup est appliqué après le tri ; le premier trade de chaque clé est gardé."""
+def test_dedup_after_sort_by_id(tmp_path: Path):
+    """La dédup par id est appliquée après le tri : le doublon est détecté."""
     rows = [
-        _canonical_row(ts=2_000, price=1.0, size=0.1, side="buy"),
-        _canonical_row(ts=1_000, price=1.0, size=0.1, side="buy"),
-        _canonical_row(ts=2_000, price=1.0, size=0.1, side="buy"),  # doublon du premier
+        _canonical_row(ts=2_000, price=1.0, size=0.1, side="buy", trade_id="dup"),
+        _canonical_row(ts=1_000, price=1.0, size=0.1, side="buy", trade_id="uniq"),
+        _canonical_row(ts=2_000, price=1.0, size=0.1, side="buy", trade_id="dup"),   # doublon
     ]
     f = _write_csv(tmp_path, rows)
     trades = list(FileReplaySource(f).trades())
-    # ts=1_000 et ts=2_000 sont des clés distinctes → 2 trades.
     assert len(trades) == 2
     assert trades[0].ts == 1_000
     assert trades[1].ts == 2_000
 
 
-# ── Side insensible à la casse ────────────────────────────────────────────────
+def test_no_dedup_without_id_logs_warning(tmp_path: Path, caplog):
+    """Sans colonne id/trade_id, la dédup est désactivée et un warning est loggé."""
+    import logging
+    rows = [
+        _canonical_row(ts=1_000, price=10.0, size=0.5, side="buy"),   # sans id
+        _canonical_row(ts=1_000, price=10.0, size=0.5, side="buy"),   # même quadruplet
+    ]
+    f = _write_csv(tmp_path, rows)
+    with caplog.at_level(logging.WARNING, logger="ninja_cat.adapters.file_replay"):
+        trades = list(FileReplaySource(f).trades())
+    # Les deux trades sont conservés (pas de dédup destructrice).
+    assert len(trades) == 2
+    assert any("déduplication désactivée" in r.message for r in caplog.records)
+
+
+def test_dedup_trade_id_column(tmp_path: Path):
+    """La colonne 'trade_id' est acceptée comme alternative à 'id'."""
+    rows = [
+        {"ts": 1_000, "price": 10.0, "size": 0.5, "side": "buy",  "trade_id": "tx-1"},
+        {"ts": 1_000, "price": 10.0, "size": 0.5, "side": "buy",  "trade_id": "tx-1"},  # doublon
+        {"ts": 2_000, "price": 20.0, "size": 1.0, "side": "sell", "trade_id": "tx-2"},
+    ]
+    f = _write_csv(tmp_path, rows)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 2
+
+
+# ── Side insensible à la casse (C5) ──────────────────────────────────────────
 
 def test_side_uppercase_buy(tmp_path: Path):
     """'BUY' (majuscules) → Side.BUY."""
@@ -345,6 +417,224 @@ def test_side_mixedcase_sell(tmp_path: Path):
     trades = list(FileReplaySource(f).trades())
     assert len(trades) == 1
     assert trades[0].side is Side.SELL
+
+
+# ── Monotonie (T2) ────────────────────────────────────────────────────────────
+
+def test_monotonicity_disordered_with_ties(tmp_path: Path):
+    """T2 — invariant monotonie sur >=5 trades vraiment désordonnés dont deux ex-aequo
+    (même ts). Après tri : all(a.ts <= b.ts) ; ordre stable des ex-aequo préservé.
+    """
+    rows = [
+        _canonical_row(ts=5_000, price=5.0, size=1.0, side="sell", trade_id="t5"),
+        _canonical_row(ts=2_000, price=2.0, size=1.0, side="buy",  trade_id="t2a"),
+        _canonical_row(ts=1_000, price=1.0, size=1.0, side="buy",  trade_id="t1"),
+        _canonical_row(ts=2_000, price=2.1, size=1.0, side="buy",  trade_id="t2b"),  # ex-aequo
+        _canonical_row(ts=3_000, price=3.0, size=1.0, side="sell", trade_id="t3"),
+    ]
+    f = _write_csv(tmp_path, rows)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 5
+    ts_list = [t.ts for t in trades]
+    assert all(a <= b for a, b in zip(ts_list, ts_list[1:])), f"ts non croissants : {ts_list}"
+    # Les deux trades ts=2_000 sont présents (ids distincts → conservés).
+    ties = [t for t in trades if t.ts == 2_000]
+    assert len(ties) == 2
+
+
+# ── Gardes de finitude, types, price/size <= 0 (T3/C2/C4) ───────────────────
+
+def test_side_numeric_ignored(tmp_path: Path):
+    """T3 — side numérique (int 1) : rejeté car ce n'est pas une str."""
+    rows = [
+        {"ts": 1_000, "price": 10.0, "size": 0.5, "side": 1},
+        _canonical_row(ts=2_000),
+    ]
+    f = _write_csv(tmp_path, rows)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_side_empty_string_ignored(tmp_path: Path):
+    """T3 — side '' : non reconnu dans le mapping → ignoré."""
+    rows = [
+        {"ts": 1_000, "price": 10.0, "size": 0.5, "side": ""},
+        _canonical_row(ts=2_000),
+    ]
+    f = _write_csv(tmp_path, rows)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_price_non_numeric_ignored(tmp_path: Path):
+    """T3 — price non numérique ('abc') : ignoré (déclenche la branche except)."""
+    rows = [
+        {"ts": 1_000, "price": "abc", "size": 0.5, "side": "buy"},
+        _canonical_row(ts=2_000),
+    ]
+    f = _write_csv(tmp_path, rows)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_size_non_numeric_ignored(tmp_path: Path):
+    """T3 — size non numérique ('abc') : ignoré."""
+    rows = [
+        {"ts": 1_000, "price": 10.0, "size": "abc", "side": "buy"},
+        _canonical_row(ts=2_000),
+    ]
+    f = _write_csv(tmp_path, rows)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_ts_inf_ignored(tmp_path: Path):
+    """T3 — ts = inf : rejeté par garde isfinite, trades() ne lève jamais."""
+    df = pd.DataFrame([
+        {"ts": float("inf"), "price": 10.0, "size": 0.5, "side": "buy"},
+        {"ts": 2_000, "price": 20.0, "size": 1.0, "side": "sell"},
+    ])
+    f = tmp_path / "trades.csv"
+    df.to_csv(f, index=False)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_ts_nan_ignored(tmp_path: Path):
+    """T3 — ts = NaN : rejeté par garde isfinite."""
+    df = pd.DataFrame([
+        {"ts": float("nan"), "price": 10.0, "size": 0.5, "side": "buy"},
+        {"ts": 2_000, "price": 20.0, "size": 1.0, "side": "sell"},
+    ])
+    f = tmp_path / "trades.csv"
+    df.to_csv(f, index=False)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_price_inf_ignored(tmp_path: Path):
+    """T3 — price = inf : rejeté par garde isfinite."""
+    df = pd.DataFrame([
+        {"ts": 1_000, "price": float("inf"), "size": 0.5, "side": "buy"},
+        {"ts": 2_000, "price": 20.0, "size": 1.0, "side": "sell"},
+    ])
+    f = tmp_path / "trades.csv"
+    df.to_csv(f, index=False)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_price_nan_ignored(tmp_path: Path):
+    """T3 — price = NaN : rejeté par garde isfinite."""
+    df = pd.DataFrame([
+        {"ts": 1_000, "price": float("nan"), "size": 0.5, "side": "buy"},
+        {"ts": 2_000, "price": 20.0, "size": 1.0, "side": "sell"},
+    ])
+    f = tmp_path / "trades.csv"
+    df.to_csv(f, index=False)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_size_inf_ignored(tmp_path: Path):
+    """T3 — size = inf : rejeté par garde isfinite."""
+    df = pd.DataFrame([
+        {"ts": 1_000, "price": 10.0, "size": float("inf"), "side": "buy"},
+        {"ts": 2_000, "price": 20.0, "size": 1.0, "side": "sell"},
+    ])
+    f = tmp_path / "trades.csv"
+    df.to_csv(f, index=False)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_size_nan_ignored(tmp_path: Path):
+    """T3 — size = NaN : rejeté par garde isfinite."""
+    df = pd.DataFrame([
+        {"ts": 1_000, "price": 10.0, "size": float("nan"), "side": "buy"},
+        {"ts": 2_000, "price": 20.0, "size": 1.0, "side": "sell"},
+    ])
+    f = tmp_path / "trades.csv"
+    df.to_csv(f, index=False)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_price_zero_ignored(tmp_path: Path):
+    """C4 — price == 0 : rejeté (défaut qualité donnée)."""
+    rows = [
+        {"ts": 1_000, "price": 0.0, "size": 1.0, "side": "buy"},
+        _canonical_row(ts=2_000),
+    ]
+    f = _write_csv(tmp_path, rows)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_price_negative_ignored(tmp_path: Path):
+    """C4 — price < 0 : rejeté."""
+    rows = [
+        {"ts": 1_000, "price": -1.0, "size": 1.0, "side": "buy"},
+        _canonical_row(ts=2_000),
+    ]
+    f = _write_csv(tmp_path, rows)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_size_zero_ignored(tmp_path: Path):
+    """C4 — size == 0 : rejeté (défaut qualité donnée)."""
+    rows = [
+        {"ts": 1_000, "price": 10.0, "size": 0.0, "side": "buy"},
+        _canonical_row(ts=2_000),
+    ]
+    f = _write_csv(tmp_path, rows)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_size_negative_ignored(tmp_path: Path):
+    """C4 — size < 0 : rejeté."""
+    rows = [
+        {"ts": 1_000, "price": 10.0, "size": -1.0, "side": "buy"},
+        _canonical_row(ts=2_000),
+    ]
+    f = _write_csv(tmp_path, rows)
+    trades = list(FileReplaySource(f).trades())
+    assert len(trades) == 1
+    assert trades[0].ts == 2_000
+
+
+def test_trades_never_raises_on_bad_data(tmp_path: Path):
+    """T3 — trades() ne lève jamais, même avec un mélange de ts/price/size = inf et NaN."""
+    df = pd.DataFrame([
+        {"ts": float("inf"), "price": 10.0,          "size": 1.0,          "side": "buy"},
+        {"ts": 1_000,        "price": float("nan"),  "size": 1.0,          "side": "buy"},
+        {"ts": 1_000,        "price": 10.0,          "size": float("inf"), "side": "buy"},
+        {"ts": float("nan"), "price": float("nan"),  "size": float("nan"), "side": "sell"},
+        {"ts": 2_000,        "price": 20.0,          "size": 1.0,          "side": "sell"},  # valide
+    ])
+    f = tmp_path / "trades.csv"
+    df.to_csv(f, index=False)
+    try:
+        result = list(FileReplaySource(f).trades())
+    except Exception as exc:
+        pytest.fail(f"trades() a levé une exception inattendue : {exc!r}")
+    assert len(result) == 1
+    assert result[0].ts == 2_000
 
 
 # ── Lignes malformées ignorées silencieusement ────────────────────────────────

@@ -37,13 +37,18 @@ Architecture hexagonale (ports & adapters) pour l'ingestion de données :
 - **Fabrique** : `get_source()`, symétrique de `get_memory()` d'ADR-003.
   Retourne `NullSource` par défaut.
 - **Invariants du contrat** : ordre chronologique (timestamps monotones
-  croissants), absence de doublons — documentés dans l'interface, à garantir
-  par les adapters de transport concrets, pas par le port lui-même.
+  croissants) ; absence de doublons **par identifiant natif** — quand le trade
+  expose un id (champ `id` côté ccxt, colonne `id`/`trade_id` côté fichier), la
+  déduplication s'effectue sur cet id (couvre le cas pagination/rollover). Sans
+  id disponible, **aucune déduplication destructrice** n'est faite (un warning
+  est loggé) : le tri garantit la monotonicité mais pas l'unicité — on préfère
+  conserver la donnée plutôt que jeter des trades légitimement identiques.
+  Garantis par les adapters concrets, pas par le port lui-même.
 - **Périmètre strict** : transport de `Trade` bruts uniquement. Aucune
   primitive dérivée, aucun agrégat, aucune doctrine. Conforme à ADR-002.
 - **Premier adapter concret** : `CcxtSource` (`src/ninja_cat/adapters/ccxt_source.py`)
   implémente `MarketDataPort` via `fetch_trades` REST de ccxt. Garanties :
-  tri par `ts` croissant + déduplication sur `(ts, price, size, side)` ;
+  tri par `ts` croissant + déduplication sur l'`id` natif du trade ;
   dégradation gracieuse (pattern ADR-003) — ccxt absent / exchange inconnu /
   `fetch_trades` échoue / trade malformé ⇒ itérable vide, jamais d'exception ;
   import ccxt en lazy, le cœur n'est jamais couplé à ccxt. `CcxtSource` exige
@@ -51,17 +56,24 @@ Architecture hexagonale (ports & adapters) pour l'ingestion de données :
   pas via `get_source()`.
 - **Adapter de replay fichier** : `FileReplaySource`
   (`src/ninja_cat/adapters/file_replay.py`) lit des trades historiques depuis
-  Parquet et CSV (mapping de colonnes optionnel), mêmes garanties (tri + dédup,
-  dégradation gracieuse, pandas/pyarrow en lazy). Exige un chemin de fichier,
-  donc instanciation directe également.
+  Parquet et CSV (mapping de colonnes optionnel), mêmes garanties (tri + dédup
+  par colonne `id`/`trade_id`, dégradation gracieuse, pandas/pyarrow en lazy).
+  Exige un chemin de fichier, donc instanciation directe également.
+- **Normalisation partagée** : `normalize_trade()`
+  (`src/ninja_cat/adapters/_normalize.py`) est l'unique fonction de
+  normalisation brut→`Trade`, utilisée par les deux adapters — garantit la
+  parité de contrat (live==replay). Elle rejette les valeurs non finies
+  (NaN/inf), un `ts` non entier, et `price`/`size` ≤ 0 ; ne lève jamais
+  (retourne `None` pour une ligne douteuse).
 
 Fichiers matérialisant cette décision : `src/ninja_cat/ingestion.py` (port +
-NullSource + ReplaySource + fabrique), `src/ninja_cat/adapters/ccxt_source.py`
-(CcxtSource), `src/ninja_cat/adapters/file_replay.py` (FileReplaySource),
-`tests/test_ingestion.py` (26 tests, committés en 8108124),
-`tests/test_ccxt_source.py` (31 tests, ccxt mocké) et
-`tests/test_file_replay.py` (43 tests, fichiers temp, zéro réseau ; suite
-totale 100 tests verts).
+NullSource + ReplaySource + fabrique), `src/ninja_cat/adapters/_normalize.py`
+(normalize_trade partagé), `src/ninja_cat/adapters/ccxt_source.py` (CcxtSource),
+`src/ninja_cat/adapters/file_replay.py` (FileReplaySource),
+`tests/test_ingestion.py` (13 tests, committés en 8108124),
+`tests/test_ccxt_source.py` (51 tests, ccxt mocké) et
+`tests/test_file_replay.py` (63 tests, fichiers temp, zéro réseau ; suite
+totale 140 tests verts).
 
 ## Consequences
 
