@@ -13,7 +13,8 @@ requires-python = ">=3.10"
 # Performance — uniquement si un hot path est mesuré lent (cf. doctrine).
 perf = ["numba==0.65.1"]
 # Temps réel — flux live (ccxt.pro est bundlé dans ccxt ; websockets = transport).
-live = ["websockets==15.0.1"]
+# websocket-client : transport CDP synchrone de l'adapter d'exécution Paper Trader.
+live = ["websockets==15.0.1", "websocket-client==1.8.0"]
 # Outillage de dev / tests.
 dev = ["pytest==8.4.1", "pytest-cov==6.2.1"]
 

@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import Iterator
 
 from ninja_cat.engine import EngineCore, RunStats
+from ninja_cat.execution import NullBroker, Order
 from ninja_cat.ingestion import NullSource, ReplaySource
 from ninja_cat.memory import MemoryHit, NullMemory
 from ninja_cat.schema import Side, Trade
@@ -40,6 +41,22 @@ class _RecordingMemory:
         return []
 
 
+class _RecordingBroker:
+    """Espion d'exécution : implémente ExecutionPort et enregistre tout ordre."""
+
+    def __init__(self) -> None:
+        self.submitted: list[Order] = []
+        self.closed: list[str] = []
+
+    def submit(self, order: Order) -> bool:
+        self.submitted.append(order)
+        return True
+
+    def close(self, symbol: str) -> bool:
+        self.closed.append(symbol)
+        return True
+
+
 class _CollectingEngine(EngineCore):
     """Sous-classe qui branche le hook _on_trade pour collecter les trades vus.
 
@@ -58,10 +75,11 @@ class _CollectingEngine(EngineCore):
 # ── Construction par défaut ───────────────────────────────────────────────────
 
 def test_default_construction_uses_null_ports():
-    """Sans argument, le moteur utilise NullSource/NullMemory (sûr, déterministe)."""
+    """Sans argument, le moteur utilise NullSource/NullMemory/NullBroker (sûrs)."""
     engine = EngineCore()
     assert isinstance(engine.source, NullSource)
     assert isinstance(engine.memory, NullMemory)
+    assert isinstance(engine.broker, NullBroker)
 
 
 def test_run_on_empty_source_returns_zeroed_stats():
@@ -129,6 +147,21 @@ def test_memory_port_is_available_to_subclass_hook():
     spy = _RecordingMemory()
     engine = EngineCore(NullSource(), memory=spy)
     assert engine.memory is spy
+
+
+def test_neutral_engine_submits_no_order():
+    """La coquille neutre ne passe JAMAIS d'ordre d'elle-même (décider = doctrine)."""
+    spy = _RecordingBroker()
+    EngineCore(ReplaySource([TRADE_A, TRADE_B, TRADE_C]), broker=spy).run()
+    assert spy.submitted == []
+    assert spy.closed == []
+
+
+def test_broker_port_is_available_to_subclass_hook():
+    """Le port d'exécution est accessible via self.broker pour la doctrine future."""
+    spy = _RecordingBroker()
+    engine = EngineCore(NullSource(), broker=spy)
+    assert engine.broker is spy
 
 
 # ── Déterminisme ──────────────────────────────────────────────────────────────

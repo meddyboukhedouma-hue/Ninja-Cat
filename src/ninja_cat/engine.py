@@ -30,6 +30,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ninja_cat.execution import ExecutionPort, NullBroker
 from ninja_cat.ingestion import MarketDataPort, NullSource
 from ninja_cat.memory import MemoryPort, NullMemory
 from ninja_cat.schema import Trade
@@ -62,15 +63,23 @@ class EngineCore:
         `NullMemory` (no-op) — cohérent avec `get_memory()`. La coquille neutre
         ne l'utilise pas elle-même (rien à persister sans doctrine) ; il est
         accessible via `self.memory` pour le hook `_on_trade` d'une sous-classe.
+    broker:
+        Port d'exécution mis à disposition de la doctrine future. Défaut :
+        `NullBroker` (no-op **sûr** : aucun ordre réel émis) — cohérent avec
+        `get_broker()`. La coquille neutre ne passe **jamais** d'ordre elle-même
+        (décider d'exécuter = doctrine) ; accessible via `self.broker` pour le
+        hook `_on_trade` d'une sous-classe.
     """
 
     def __init__(
         self,
         source: MarketDataPort | None = None,
         memory: MemoryPort | None = None,
+        broker: ExecutionPort | None = None,
     ) -> None:
         self.source: MarketDataPort = source if source is not None else NullSource()
         self.memory: MemoryPort = memory if memory is not None else NullMemory()
+        self.broker: ExecutionPort = broker if broker is not None else NullBroker()
 
     def run(self) -> RunStats:
         """Consomme tout le flux de la source et retourne un bilan neutre.

@@ -19,8 +19,9 @@ src/ninja_cat/
   schema.py          Schéma canonique : Trade, Side (donnée de marché brute, neutre)
   ingestion.py       Port d'ingestion entrant (MarketDataPort) + NullSource/ReplaySource
   memory.py          Port mémoire sortant (MemoryPort) + NullMemory
+  execution.py       Port d'exécution sortant (ExecutionPort, Order) + NullBroker
   engine.py          Coquille moteur neutre (EngineCore) : consomme les Trade, couture de doctrine vide
-  adapters/          Adapters concrets (CcxtSource, FileReplaySource, AgentDbMemory)
+  adapters/          Adapters concrets (CcxtSource, FileReplaySource, AgentDbMemory, PaperTraderBroker)
 tests/               pytest
 requirements.txt
 ```
