@@ -42,7 +42,25 @@ def test_parse_hits_json_results_envelope_and_limit():
     assert hits[0].key == "a"
 
 
-def test_parse_hits_non_json_falls_back_to_lines():
+def test_parse_hits_claude_flow_table():
+    out = (
+        '[INFO] Searching: "doctrine" (semantic)\n'
+        "  Search time: 10ms\n"
+        "+--------+-------+-----------+---------------------------+\n"
+        "| Key    | Score | Namespace | Preview                   |\n"
+        "+--------+-------+-----------+---------------------------+\n"
+        "| probe2 |  0.33 | ninja...  | le moteur est la doctrine |\n"
+        "+--------+-------+-----------+---------------------------+\n"
+        "[INFO] Found 1 results\n"
+    )
+    hits = _parse_hits(out, limit=5)
+    assert len(hits) == 1
+    assert hits[0].key == "probe2"
+    assert hits[0].score == 0.33
+    assert "doctrine" in hits[0].value
+
+
+def test_parse_hits_non_table_non_json_falls_back_to_lines():
     out = "ligne 1\n\nligne 2\n"
     hits = _parse_hits(out, limit=5)
     assert [h.value for h in hits] == ["ligne 1", "ligne 2"]

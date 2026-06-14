@@ -16,6 +16,7 @@ sinon lignes brutes). À affiner une fois claude-flow approuvé et connecté.
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 
 from ..memory import MemoryHit
@@ -30,7 +31,7 @@ class AgentDbMemory:
     def __init__(
         self,
         cli: tuple[str, ...] = _DEFAULT_CLI,
-        timeout: float = 60.0,
+        timeout: float = 120.0,
     ) -> None:
         self._cli = cli
         self._timeout = timeout
@@ -51,10 +52,17 @@ class AgentDbMemory:
         return _parse_hits(out, limit)
 
     def _run(self, args: list[str]) -> str | None:
-        """Exécute la CLI ; retourne stdout, ou None en cas d'échec (gracieux)."""
+        """Exécute la CLI ; retourne stdout, ou None en cas d'échec (gracieux).
+
+        Résout l'exécutable via `shutil.which` (cross-platform : sous Windows,
+        `npx` est `npx.CMD` et n'est pas lançable par son seul nom).
+        """
+        exe = shutil.which(self._cli[0])
+        if exe is None:  # CLI introuvable (ex. npx/claude-flow absent) -> no-op
+            return None
         try:
             proc = subprocess.run(
-                [*self._cli, *args],
+                [exe, *self._cli[1:], *args],
                 capture_output=True,
                 text=True,
                 timeout=self._timeout,
@@ -68,12 +76,18 @@ class AgentDbMemory:
 
 
 def _parse_hits(out: str, limit: int) -> list[MemoryHit]:
-    """Parsing best-effort de la sortie `memory search`."""
+    """Parse la sortie `memory search`.
+
+    claude-flow 3.6 émet un tableau ASCII (Key | Score | Namespace | Preview),
+    pas de JSON. On tente d'abord le JSON (versions futures), puis le tableau,
+    puis en dernier recours les lignes brutes. NB : `value` porte le *Preview*
+    du CLI, potentiellement tronqué — récupérer la valeur complète via `retrieve`
+    si besoin.
+    """
     try:
         data = json.loads(out)
     except (json.JSONDecodeError, ValueError):
-        lines = [ln for ln in out.splitlines() if ln.strip()]
-        return [MemoryHit(key="", value=ln) for ln in lines[:limit]]
+        return _parse_table(out, limit)
 
     rows = data if isinstance(data, list) else data.get("results", [])
     hits: list[MemoryHit] = []
@@ -89,6 +103,34 @@ def _parse_hits(out: str, limit: int) -> list[MemoryHit]:
         else:
             hits.append(MemoryHit(key="", value=str(row)))
     return hits
+
+
+def _parse_table(out: str, limit: int) -> list[MemoryHit]:
+    """Parse le tableau ASCII de claude-flow ; sinon, lignes brutes (compat)."""
+    header: list[str] | None = None
+    rows: list[dict[str, str]] = []
+    for line in out.splitlines():
+        s = line.strip()
+        if not s.startswith("|"):
+            continue  # ignore bordures (+---+), INFO, lignes vides
+        cells = [c.strip() for c in s.strip("|").split("|")]
+        if header is None:
+            header = [c.lower() for c in cells]
+            continue
+        rows.append(dict(zip(header, cells)))
+
+    if header is not None:  # c'était bien un tableau
+        return [
+            MemoryHit(
+                key=r.get("key", ""),
+                value=r.get("preview", r.get("value", "")),
+                score=_as_float(r.get("score")),
+            )
+            for r in rows[:limit]
+        ]
+
+    lines = [ln for ln in out.splitlines() if ln.strip()]
+    return [MemoryHit(key="", value=ln) for ln in lines[:limit]]
 
 
 def _as_float(x: object) -> float | None:

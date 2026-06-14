@@ -12,5 +12,5 @@ scipy==1.15.3
 # Données de marché — historique + REST (ccxt.pro temps réel est bundlé dans ccxt)
 ccxt==4.5.53
 
-# Validation / recherche (CV, meta-labeling) — non installé dans l'env actuel
-scikit-learn>=1.6      # à figer en == après la 1ère install
+# Validation / recherche (CV, meta-labeling)
+scikit-learn==1.7.2
