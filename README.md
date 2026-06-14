@@ -17,6 +17,10 @@ par-symbole. Simplicité avant tout.
 src/ninja_cat/
   config.py          Config centrale (métadonnée marché ; scalaires de stratégie à venir)
   schema.py          Schéma canonique : Trade, Side (donnée de marché brute, neutre)
+  ingestion.py       Port d'ingestion entrant (MarketDataPort) + NullSource/ReplaySource
+  memory.py          Port mémoire sortant (MemoryPort) + NullMemory
+  engine.py          Coquille moteur neutre (EngineCore) : consomme les Trade, couture de doctrine vide
+  adapters/          Adapters concrets (CcxtSource, FileReplaySource, AgentDbMemory)
 tests/               pytest
 requirements.txt
 ```
