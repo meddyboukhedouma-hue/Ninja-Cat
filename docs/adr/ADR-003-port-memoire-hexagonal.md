@@ -54,5 +54,8 @@ Architecture hexagonale (ports & adapters) pour la mémoire :
 
 ## Links
 - Matérialise le port mémoire de [ADR-001](ADR-001-verite-donnee-doctrine-moteur.md).
+- [ADR-004](ADR-004-port-ingestion-hexagonal.md) est le symétrique entrant :
+  port d'ingestion (`MarketDataPort`) côté donnée — complète la frontière
+  hexagonale du cœur.
 - Le port *entrant* (hypothèses : neural-trader / HNSW / discrétionnaire) reste
   à matérialiser quand une stratégie sera définie par le décideur humain.
