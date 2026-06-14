@@ -89,6 +89,35 @@ _EXT_TO_FMT: dict[str, str] = {
 _ID_COLUMN_CANDIDATES: tuple[str, ...] = ("id", "trade_id")
 
 
+def _format_native_id(raw_id: object) -> str:
+    """Formate un id natif de trade en chaîne canonique stable.
+
+    Problème résolu : si la colonne d'id contient une valeur manquante, pandas
+    upcaste TOUTE la colonne en float64. Un id entier (ex. 1001) devient alors
+    1001.0, et ``str(1001.0)`` donne "1001.0" — voire "1.2e+16" en notation
+    scientifique pour les grands ids. Ce formatage ne matcherait plus le même id
+    lu en entier depuis une autre source : la dédup par id échouerait et la
+    parité live == replay serait rompue (ADR-004).
+
+    Solution : un float *entier* (1001.0) est reformaté en entier exact ("1001").
+    Les autres valeurs (int, str, float réellement fractionnaire) passent par
+    ``str`` tel quel.
+
+    Limite connue (non corrigeable ici) : un id entier >= 2**53 ne tient pas
+    exactement dans un float64. S'il a été upcasté en float (NaN dans la colonne,
+    ou colonne stockée en double), sa précision est DÉJÀ perdue avant d'arriver
+    ici. En CSV la frontière est même plus basse : le parseur de flottants par
+    défaut de pandas (rapide mais inexact) peut altérer un grand id bien avant
+    2**53. Mitigation côté source : stocker les très grands ids en colonne
+    **texte** (jamais upcastée ni reparsée), pas en numérique.
+    """
+    if isinstance(raw_id, float):
+        f = float(raw_id)  # np.float64 → float python (garantit is_integer())
+        if f.is_integer():
+            return str(int(f))
+    return str(raw_id)
+
+
 class FileReplaySource:
     """Source de replay depuis un fichier Parquet ou CSV.
 
@@ -293,21 +322,20 @@ class FileReplaySource:
                 id_col = candidate
                 break
 
+        # pandas est déjà chargé à ce stade (df existe) : simple lookup sys.modules.
+        import pandas as pd
+
         for _, row in df.iterrows():
-            # Extrait l'id natif si disponible (NaN pandas → None).
+            # Extrait l'id natif si disponible (None/NaN/NaT pandas → None).
             trade_id: str | None = None
             if id_col is not None:
                 raw_id = row.get(id_col)
-                # pandas NaN est un float ; on vérifie via pandas isna si possible,
-                # sinon on tente isinstance float NaN.
-                try:
-                    import math as _math
-                    if raw_id is not None and not (
-                        isinstance(raw_id, float) and _math.isnan(raw_id)
-                    ):
-                        trade_id = str(raw_id)
-                except (TypeError, ValueError):
-                    trade_id = None
+                # pd.isna() couvre None, NaN et NaT de façon idiomatique et robuste.
+                if not pd.isna(raw_id):
+                    # _format_native_id : un id entier upcasté en float (NaN dans
+                    # la colonne) est reformaté en entier — sinon "1001.0" ne
+                    # matcherait pas "1001" lu ailleurs (parité dédup).
+                    trade_id = _format_native_id(raw_id)
 
             trade = normalize_trade(
                 ts_raw=row.get("ts"),

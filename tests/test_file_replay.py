@@ -385,6 +385,72 @@ def test_dedup_trade_id_column(tmp_path: Path):
     assert len(trades) == 2
 
 
+# ── Précision des id entiers upcastés en float par pandas ──────────────────────
+# Quand une colonne d'id numérique contient une valeur manquante, pandas upcaste
+# TOUTE la colonne en float64. L'id entier 1001 devient 1001.0 ; un str() naïf
+# donnerait "1001.0" (ou "1.2e+16"), ce qui casserait la parité de dédup vs le
+# même id lu en entier ailleurs. _format_native_id() reconvertit le float entier.
+
+def test_integer_id_upcast_to_float_is_formatted_without_decimal(tmp_path: Path):
+    """Un id entier dont la colonne est upcastée en float64 (NaN présent) produit
+    un id natif SANS suffixe '.0' — sinon il ne matcherait pas le même id en int.
+    """
+    rows = [
+        {"ts": 1_000, "price": 10.0, "size": 0.5, "side": "buy",  "id": 1001},
+        {"ts": 2_000, "price": 20.0, "size": 1.0, "side": "sell"},  # id manquant → NaN → upcast
+    ]
+    f = _write_csv(tmp_path, rows)
+
+    # Garde : la colonne d'id est bien upcastée en float par pandas (sinon le
+    # test ne prouverait rien).
+    df = pd.read_csv(f)
+    assert df["id"].dtype == float
+
+    pairs = list(FileReplaySource(f)._normalise(df))
+    ids = [trade_id for trade_id, _ in pairs]
+    assert "1001" in ids, f"id entier mal formaté : {ids}"
+    assert "1001.0" not in ids
+    assert None in ids  # la ligne sans id reste non identifiée (pas de dédup)
+
+
+def test_large_integer_id_below_2pow53_kept_exact_parquet(tmp_path: Path):
+    """Un grand id entier <= 2**53-1 reste EXACT malgré l'upcast float64, en
+    Parquet (schéma typé, pas de parseur de chaîne). Seul le formatage était à
+    corriger : la valeur tient exactement dans un float64.
+
+    NB : en CSV ce même id serait altéré par le parseur de flottants par défaut
+    de pandas (cf. docstring de _format_native_id) — c'est pourquoi ce test cible
+    Parquet. La mitigation CSV pour les très grands ids = colonne texte.
+    """
+    big_id = 9_007_199_254_740_991  # 2**53 - 1, dernier entier exact en float64
+    rows = [
+        {"ts": 1_000, "price": 10.0, "size": 0.5, "side": "buy",  "id": big_id},
+        {"ts": 2_000, "price": 20.0, "size": 1.0, "side": "sell"},  # NaN → upcast float
+    ]
+    f = _write_parquet(tmp_path, rows)
+    df = pd.read_parquet(f)
+    assert df["id"].dtype == float  # garde : bien upcasté (NaN présent)
+
+    pairs = list(FileReplaySource(f)._normalise(df))
+    ids = [trade_id for trade_id, _ in pairs]
+    assert str(big_id) in ids, f"grand id altéré : {ids}"
+
+
+def test_dedup_integer_ids_with_float_upcast(tmp_path: Path):
+    """Dédup de bout en bout : deux trades de même id entier sont dédupliqués
+    même quand la colonne est upcastée en float (NaN sur une autre ligne).
+    """
+    rows = [
+        {"ts": 1_000, "price": 10.0, "size": 0.5, "side": "buy",  "id": 1001},
+        {"ts": 2_000, "price": 20.0, "size": 1.0, "side": "sell"},               # NaN → upcast
+        {"ts": 1_000, "price": 10.0, "size": 0.5, "side": "buy",  "id": 1001},   # doublon de 1001
+    ]
+    f = _write_csv(tmp_path, rows)
+    trades = list(FileReplaySource(f).trades())
+    # 1001 dédupliqué (2 → 1) + la ligne sans id conservée = 2 trades.
+    assert len(trades) == 2
+
+
 # ── Side insensible à la casse (C5) ──────────────────────────────────────────
 
 def test_side_uppercase_buy(tmp_path: Path):
