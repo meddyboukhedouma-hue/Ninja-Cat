@@ -2,9 +2,12 @@
 
 Plateforme d'aide à la décision pour le trading (quant).
 
-**Principe directeur :** le moteur Python est la **source unique de vérité** ;
-les couches d'affichage ne font que *rendre*. Seuils **scale-free** centralisés
-dans `Config` ; seul `tick_size` est par-symbole. Simplicité avant tout.
+**Principe directeur :** la **donnée de marché est la seule source de vérité** —
+le marché tranche, toujours. Le **moteur** est la source unique de *doctrine*
+(l'unique endroit, déterministe, où vit la logique de décision) ; il reste un
+*modèle* subordonné au verdict de la donnée. Les couches d'affichage ne font que
+*rendre*. Seuils **scale-free** centralisés dans `Config` ; seul `tick_size` est
+par-symbole. Simplicité avant tout.
 
 ## Structure
 
