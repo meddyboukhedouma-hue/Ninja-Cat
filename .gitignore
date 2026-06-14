@@ -22,3 +22,7 @@ vendor/
 .idea/
 .vscode/
 .DS_Store
+
+# Archives de bootstrap (scaffold déjà extrait dans le repo)
+*.tar.gz
+*.bundle
