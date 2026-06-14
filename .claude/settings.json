@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/session-start-swarm.json\"",
+            "timeout": 5,
+            "statusMessage": "Rappel swarm claude-flow"
+          }
+        ]
+      }
+    ]
+  }
+}

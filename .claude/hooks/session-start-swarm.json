@@ -1,0 +1,6 @@
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "Projet NinjaCat : un swarm claude-flow PERSISTANT coordonne l'équipe quant (cf. ADR-005 et la mémoire swarm-claude-flow-persistant). Son état persiste sur disque mais n'est PAS auto-injecté dans le contexte. Avant tout travail touchant l'orchestration ou les agents, appeler l'outil MCP claude-flow swarm_status (puis agent_list) pour redécouvrir le swarm et son état. Si la réponse est no_swarm, le remonter via swarm_init (topologie hierarchical, stratégie specialized) puis re-spawner les 6 agents : orchestrator + architect, data-engineer, implementer, backtest-validator, viz-verifier. NB IMPORTANT : la CLI 'claude-flow swarm status' ne reflète PAS ce swarm (store d'état séparé) — toujours utiliser l'outil MCP swarm_status."
+  }
+}
