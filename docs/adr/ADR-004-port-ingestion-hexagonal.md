@@ -49,12 +49,19 @@ Architecture hexagonale (ports & adapters) pour l'ingestion de données :
   import ccxt en lazy, le cœur n'est jamais couplé à ccxt. `CcxtSource` exige
   `exchange_id` + `symbol`, donc instanciation directe (comme `ReplaySource`),
   pas via `get_source()`.
+- **Adapter de replay fichier** : `FileReplaySource`
+  (`src/ninja_cat/adapters/file_replay.py`) lit des trades historiques depuis
+  Parquet et CSV (mapping de colonnes optionnel), mêmes garanties (tri + dédup,
+  dégradation gracieuse, pandas/pyarrow en lazy). Exige un chemin de fichier,
+  donc instanciation directe également.
 
 Fichiers matérialisant cette décision : `src/ninja_cat/ingestion.py` (port +
 NullSource + ReplaySource + fabrique), `src/ninja_cat/adapters/ccxt_source.py`
-(CcxtSource), `tests/test_ingestion.py` (26 tests verts, committés en 8108124)
-et `tests/test_ccxt_source.py` (31 tests, ccxt mocké, zéro réseau ; suite
-totale 57 tests verts).
+(CcxtSource), `src/ninja_cat/adapters/file_replay.py` (FileReplaySource),
+`tests/test_ingestion.py` (26 tests, committés en 8108124),
+`tests/test_ccxt_source.py` (31 tests, ccxt mocké) et
+`tests/test_file_replay.py` (43 tests, fichiers temp, zéro réseau ; suite
+totale 100 tests verts).
 
 ## Consequences
 
