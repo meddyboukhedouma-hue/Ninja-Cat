@@ -76,5 +76,7 @@ Fichiers alignés sur cette décision : `README.md`, `src/ninja_cat/__init__.py`
   inchangé, vocabulaire corrigé.
 
 ## Links
-- Future : ADR sur la frontière ruflo (port hypothèses / port mémoire) et le
-  `MemoryPort` découplant le moteur d'AgentDB.
+- [ADR-003](ADR-003-port-memoire-hexagonal.md) matérialise le port mémoire
+  (`MemoryPort`) découplant le moteur d'AgentDB.
+- Le port *entrant* (hypothèses : neural-trader / HNSW / discrétionnaire) reste
+  à matérialiser quand une stratégie sera définie.
