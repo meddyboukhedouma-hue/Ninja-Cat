@@ -41,10 +41,20 @@ Architecture hexagonale (ports & adapters) pour l'ingestion de données :
   par les adapters de transport concrets, pas par le port lui-même.
 - **Périmètre strict** : transport de `Trade` bruts uniquement. Aucune
   primitive dérivée, aucun agrégat, aucune doctrine. Conforme à ADR-002.
+- **Premier adapter concret** : `CcxtSource` (`src/ninja_cat/adapters/ccxt_source.py`)
+  implémente `MarketDataPort` via `fetch_trades` REST de ccxt. Garanties :
+  tri par `ts` croissant + déduplication sur `(ts, price, size, side)` ;
+  dégradation gracieuse (pattern ADR-003) — ccxt absent / exchange inconnu /
+  `fetch_trades` échoue / trade malformé ⇒ itérable vide, jamais d'exception ;
+  import ccxt en lazy, le cœur n'est jamais couplé à ccxt. `CcxtSource` exige
+  `exchange_id` + `symbol`, donc instanciation directe (comme `ReplaySource`),
+  pas via `get_source()`.
 
 Fichiers matérialisant cette décision : `src/ninja_cat/ingestion.py` (port +
-NullSource + ReplaySource + fabrique) et `tests/test_ingestion.py` (26 tests
-verts, committés en 8108124).
+NullSource + ReplaySource + fabrique), `src/ninja_cat/adapters/ccxt_source.py`
+(CcxtSource), `tests/test_ingestion.py` (26 tests verts, committés en 8108124)
+et `tests/test_ccxt_source.py` (31 tests, ccxt mocké, zéro réseau ; suite
+totale 57 tests verts).
 
 ## Consequences
 
@@ -57,9 +67,10 @@ verts, committés en 8108124).
   traversent le même `MarketDataPort`.
 
 ### Negative
-- Un adapter CCXT concret est délibérément **différé** (YAGNI) : aucun
-  consommateur ni stratégie ne consomme encore de `Trade` ; l'écrire maintenant
-  serait du code mort.
+- `CcxtSource` existe et est testé, mais **aucun consommateur ni stratégie ne
+  lit encore de `Trade`** : l'adapter n'est pas encore branché à un moteur. Le
+  câblage live et tout traitement en aval restent différés (YAGNI déplacé :
+  ce n'est plus l'adapter lui-même qui est manquant, c'est son usage).
 - Le flux live n'a de sens qu'une fois une stratégie définie par le décideur
   humain (doctrine hors périmètre infra).
 
