@@ -31,4 +31,5 @@ vendor/
 # Bases locales claude-flow / AgentDB (mémoire ; régénérées via `memory init`)
 *.db
 .swarm/
+.claude-flow/
 .claude/memory.db
