@@ -15,8 +15,8 @@ par-symbole. Simplicité avant tout.
 .claude/agents/      Agents quant spécialisés (voir ci-dessous)
 .mcp.json            Serveur MCP tradingview (affichage + vérification visuelle)
 src/ninja_cat/
-  config.py          Config centrale (tous les scalaires calibrables)
-  schema.py          Schéma canonique : Trade, Bar, Side
+  config.py          Config centrale (métadonnée marché ; scalaires de stratégie à venir)
+  schema.py          Schéma canonique : Trade, Side (donnée de marché brute, neutre)
 tests/               pytest
 requirements.txt
 ```

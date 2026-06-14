@@ -3,7 +3,12 @@
 Tout flux entrant (CCXT, websocket exchange, fichiers) est normalisé vers ces
 structures. Le reste du système ne voit que ce schéma. Horloge en UTC, epoch ms.
 
-Convention agresseur : taker buy -> ASK (delta +) ; taker sell -> BID (delta -).
+Volontairement minimal : on ne modélise ici que la donnée de marché **brute**,
+neutre vis-à-vis de toute stratégie. Les agrégats (type de barre, primitives
+dérivées) sont des choix de méthodologie — ils seront définis par l'architecte
+une fois une stratégie choisie, pas avant.
+
+Convention : `side` = côté agresseur (taker) quand la source le fournit.
 """
 
 from __future__ import annotations
@@ -15,13 +20,13 @@ from enum import Enum
 class Side(str, Enum):
     """Côté agresseur (taker)."""
 
-    BUY = "buy"    # taker buy  -> ask, delta +
-    SELL = "sell"  # taker sell -> bid, delta -
+    BUY = "buy"
+    SELL = "sell"
 
 
 @dataclass(frozen=True)
 class Trade:
-    """Un trade normalisé (côté agresseur natif quand la source le fournit)."""
+    """Un trade normalisé — la primitive de marché brute, sans hypothèse de stratégie."""
 
     ts: int        # timestamp epoch ms (UTC, monotone)
     price: float
@@ -30,27 +35,5 @@ class Trade:
 
     @property
     def signed_size(self) -> float:
-        """Taille signée selon la convention agresseur (+ buy / - sell)."""
+        """Taille signée par le côté agresseur (+ buy / - sell)."""
         return self.size if self.side is Side.BUY else -self.size
-
-
-@dataclass(frozen=True)
-class Bar:
-    """Bougie footprint agrégée — primitives minimales par barre.
-
-    `levels` : {prix: (bid_vol, ask_vol)} pour séquençage / imbalance.
-    """
-
-    ts_open: int
-    ts_close: int
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: float
-    delta: float            # delta net (close du delta cumulé)
-    delta_max: float        # pic du delta cumulé intra-barre
-    delta_min: float        # creux du delta cumulé intra-barre
-    poc_price: float        # niveau de plus gros volume
-    poc_position: float     # position du POC dans [low, high] : 0 = bas, 1 = haut
-    levels: dict[float, tuple[float, float]]
