@@ -53,5 +53,6 @@ Pré-requis :
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate.bat
 pip install -r requirements.txt
-pytest
+pip install -e .                 # installe le paquet (src/) en mode editable
+pytest                           # pythonpath=src est configuré dans pyproject.toml
 ```

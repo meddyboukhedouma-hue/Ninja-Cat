@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ninja-cat"
+version = "0.0.1"
+description = "Ninja-Cat — plateforme d'aide à la décision pour le trading (quant)"
+requires-python = ">=3.10"
+# Dépendances runtime : voir requirements.txt (épinglage à venir, cf. backlog infra).
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
