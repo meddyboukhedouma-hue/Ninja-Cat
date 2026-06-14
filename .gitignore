@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environnements virtuels
+.venv/
+venv/
+env/
+
+# Données de marché (historique rejouable, logs live) — non versionnées
+data/
+*.parquet
+*.log
+
+# Vendor (cloné séparément, cf. README)
+vendor/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store

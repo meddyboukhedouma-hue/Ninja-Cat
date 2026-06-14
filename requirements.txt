@@ -1,0 +1,19 @@
+# Ninja-Cat — plateforme d'aide à la décision trading (quant)
+# Coeur (logique quant)
+numpy
+pandas
+pyarrow            # stockage colonne / historique rejouable
+
+# Données de marché
+ccxt               # data historique + live (ccxt.pro pour les flux temps réel)
+websockets         # transport flux temps réel
+
+# Performance (hot paths mesurés uniquement)
+numba              # JIT; alternative: portage Rust via maturin/PyO3
+
+# Validation / recherche
+scikit-learn       # CV, meta-labeling
+scipy
+
+# Tests
+pytest
