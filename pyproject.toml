@@ -7,7 +7,15 @@ name = "ninja-cat"
 version = "0.0.1"
 description = "Ninja-Cat — plateforme d'aide à la décision pour le trading (quant)"
 requires-python = ">=3.10"
-# Dépendances runtime : voir requirements.txt (épinglage à venir, cf. backlog infra).
+# Dépendances runtime CŒUR : voir requirements.txt (épinglées).
+
+[project.optional-dependencies]
+# Performance — uniquement si un hot path est mesuré lent (cf. doctrine).
+perf = ["numba==0.65.1"]
+# Temps réel — flux live (ccxt.pro est bundlé dans ccxt ; websockets = transport).
+live = ["websockets==15.0.1"]
+# Outillage de dev / tests.
+dev = ["pytest==8.4.1", "pytest-cov==6.2.1"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

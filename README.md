@@ -13,7 +13,7 @@ par-symbole. Simplicité avant tout.
 
 ```
 .claude/agents/      Agents quant spécialisés (voir ci-dessous)
-.mcp.json            Serveur MCP tradingview (affichage + vérification visuelle)
+.mcp.json            Serveurs MCP du projet (claude-flow ; tradingview au scope user)
 src/ninja_cat/
   config.py          Config centrale (métadonnée marché ; scalaires de stratégie à venir)
   schema.py          Schéma canonique : Trade, Side (donnée de marché brute, neutre)
@@ -41,9 +41,12 @@ les sorties du moteur sur le chart, les relire, et auto-corriger le rendu.
 TradingView ne recalcule **jamais** la doctrine — il ne fait que rendre.
 
 Pré-requis :
-1. `git clone https://github.com/tradesdontlie/tradingview-mcp vendor/tradingview-mcp`
-   puis `cd vendor/tradingview-mcp && npm install` (Node 18+).
-2. Ajuste le chemin dans `.mcp.json` (`args`) si besoin.
+1. Récupère le serveur `tradingview-mcp` :
+   `git clone https://github.com/tradesdontlie/tradingview-mcp`
+   puis `cd tradingview-mcp && npm install` (Node 18+).
+2. Enregistre-le **au scope user** (pas dans le `.mcp.json` projet, pour éviter
+   les chemins absolus committés) :
+   `claude mcp add tradingview -s user -- node <chemin>/tradingview-mcp/src/server.js`
 3. Lance **TradingView Desktop** avec `--remote-debugging-port=9222`
    (abonnement TradingView requis, port local 9222).
 
@@ -52,7 +55,8 @@ Pré-requis :
 ```bash
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate.bat
-pip install -r requirements.txt
-pip install -e .                 # installe le paquet (src/) en mode editable
+pip install -r requirements.txt  # cœur runtime (épinglé)
+pip install -e ".[dev]"          # paquet (src/) en editable + outillage de test
 pytest                           # pythonpath=src est configuré dans pyproject.toml
+# Extras optionnels : pip install -e ".[perf]"  (numba)  /  ".[live]"  (websockets)
 ```

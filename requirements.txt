@@ -1,19 +1,16 @@
-# Ninja-Cat — plateforme d'aide à la décision trading (quant)
-# Coeur (logique quant)
-numpy
-pandas
-pyarrow            # stockage colonne / historique rejouable
+# Ninja-Cat — dépendances runtime CŒUR (épinglées).
+# Versions = celles validées dans l'environnement courant (Python 3.10).
+# Extras (perf / live / dev) : voir [project.optional-dependencies] dans pyproject.toml.
+# NB : un lock complet (pip freeze, transitives incluses) est un jalon ultérieur.
 
-# Données de marché
-ccxt               # data historique + live (ccxt.pro pour les flux temps réel)
-websockets         # transport flux temps réel
+# Cœur quant
+numpy==2.2.6
+pandas==2.3.3
+pyarrow==19.0.1        # stockage colonne / historique rejouable
+scipy==1.15.3
 
-# Performance (hot paths mesurés uniquement)
-numba              # JIT; alternative: portage Rust via maturin/PyO3
+# Données de marché — historique + REST (ccxt.pro temps réel est bundlé dans ccxt)
+ccxt==4.5.53
 
-# Validation / recherche
-scikit-learn       # CV, meta-labeling
-scipy
-
-# Tests
-pytest
+# Validation / recherche (CV, meta-labeling) — non installé dans l'env actuel
+scikit-learn>=1.6      # à figer en == après la 1ère install
