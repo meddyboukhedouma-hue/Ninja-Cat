@@ -60,8 +60,8 @@ Zone FVG = `[H[i−2], L[i]]` (bull) / `[H[i], L[i−2]]` (bear). Source : ebook
 Un mouvement est **impulsif** ssi il **casse la structure (BoS externe, §1.5 / R2) OU laisse une FVG valide (§1.4)**.
 Socle des 5 types. Rejeté : `1.5×ATR14` (proxy code), `≥3 ATR233 / 5 bougies` (= grande impulsion scénario D seulement).
 
-### 1.7 Mèche longue ✅
-Bougie à **mèche longue** côté `X` si `X_wick / range ≥ 0.50` (`X` = upper ou lower). Source : Pine v19 (mèche ≥ 0.50).
+### 1.7 Mèche longue ✅ (unifié 2026-06-19)
+Bougie à **mèche longue côté `X`** (`X` = upper ou lower) ssi **`X_wick > body`** (la mèche dépasse le corps). Critère canon « petit corps + longue mèche » (`qCAdx5LIcL0 @ 00:13:03`, `ejjGH70rhbA @ 00:16:57`), applicable **à un côté** (T5 wick block) ou **aux deux** (T4 base ABA — `upper_wick > body` ET `lower_wick > body`). *Subsume l'ancien `X_wick/range ≥ 0.50` (Pine v19) : pour une bougie à mèche dominante d'un seul côté, `wick > body ⟺ wick/range ≳ 0.50` ; et `≥0.50 des deux côtés` était impossible (somme > range).*
 
 ---
 
@@ -125,7 +125,7 @@ La doctrine Garry laisse ce choix **discrétionnaire** : « entre les deux c'est
 
 ### T4 — Base d'Accélération (ABA) ✅ (R5 tranché 2026-06-19 : base = morphologie canon, sans chiffre)
 **Séquence** : `accél_in → base → accél_out`.
-- **Bougie de base** — **morphologie canon, sans chiffre** : **petit corps + longues mèches des DEUX côtés** (`qCAdx5LIcL0 @ 00:13:03` ; `ejjGH70rhbA @ 00:16:57`). Opérationnalisation proposée (**inférence à valider** — le canon ne donne aucune formule) : `body < upper_wick` **ET** `body < lower_wick` (chaque mèche dépasse le corps — **relatif, sans ATR**). *Remplace l'ancien `upper_wick/range ≥ 0.50 ET lower_wick/range ≥ 0.50`, qui était **impossible** (somme > range ⇒ corps ≤ 0).* *(Le `body ≤ 0.30 ATR` n'est **PAS** dans le canon distillé — `aba.md` laisse le seuil en placeholder ; unique source garbled sans ATR `bXSNlOQ-h3c @ 01:38:21` → retiré du critère, conservé en proxy tunable optionnel.)*
+- **Bougie de base** — **morphologie canon, sans chiffre** : **petit corps + mèche longue (§1.7) des DEUX côtés** (`upper_wick > body` **ET** `lower_wick > body`), canon `qCAdx5LIcL0 @ 00:13:03` / `ejjGH70rhbA @ 00:16:57`. *(Inférence assumée : le canon donne le qualitatif « petit corps longue mèche », pas la formule — cf. §1.7 unifié.)* *(Le `body ≤ 0.30 ATR` n'est **PAS** dans le canon distillé — `aba.md` laisse le seuil en placeholder ; unique source garbled sans ATR `bXSNlOQ-h3c @ 01:38:21` → retiré du critère, conservé en proxy tunable optionnel.)*
 - **Base** = **1 à 3** bougies de base consécutives (canon `aba.md` ; au-delà, ce n'est plus une base).
 - **Morphologie typique** (indicative, **non requise**) : séquence **baissière→haussière** (bull) / haussière→baissière (bear) — `ejjGH70rhbA @ 05:28:59` (1 passage, contexte ABA imbriqué).
 - **Bougie d'accél** : bougie **impulsive** (§1.6) encadrant la base (l'ancien `body > 0.30 ATR` partageait le proxy garbled → hors canon).
