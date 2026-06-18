@@ -143,14 +143,36 @@ La doctrine Garry laisse ce choix **discrétionnaire** : « entre les deux c'est
 ### 3.1 Détection multi-TF ✅
 Les 5 types sont détectés sur **Large / Moyen / Court** (ebook p11). Chaque zone porte son **TF d'origine**.
 
-### 3.2 Force d'une zone ✅ / ⚠️
-`force_origine` = rang du TF d'origine (Court = 0 / « temps zéro », Moyen = +1, Large = +2, relatifs au TF tradé).
-`force_effective = force_origine − (nb de cassures de structure internes en dessous)` ⚠️ (règle « −1 par jeu interne », attestation décideur).
+### 3.2 Force d'une zone — POINTEUR vers le modèle de force 🟦 (R7 résolu 2026-06-18)
+**La spec OB ne possède PAS le modèle de force.** Source de vérité : `ressources/data-wiki/concepts/force-energie.md` (canon) + `ressources/scripts/cartographie.py` (implémentation de référence). Ce §3.2 ne fait que **pointer** et lister les dégradations vérifiées au texte vidéo. L'ancien compteur « `force − nb cassures internes` / −1 par jeu interne » est **retiré** : non sourcé (le canon donne des dégradations **conditionnelles hétérogènes**, pas un compte).
 
-### 3.3 Résolution (réduit les 7 cas) ✅
+**Cadre canon (vérifié transcripts) :**
+- `force_origine` = rang du TF d'origine dans la cascade **demi-paliers** (M1=0 … W1=11), relatif au TF tradé. Chaque « fois de force » = **−2 demi-paliers** (force-energie.md).
+- **Comparaison décisive** : `force_courante < force_zone` → la zone **tient** (rebond) ; `≥` → elle **casse** (`WO1gp3sk5U0 @ 00:26:00` / `@ 00:26:59`).
+- `force_courante` = `swing_tf` + (+2 demi-paliers/cassage, **plafond 2**) − (**÷2** si fausse cassure) − dégradations.
+- **Contre-swing** : conditionne la cascade — absent → rebond au TF courant ; présent (**≥ ~1 cm ≈ 1 ATR**, `WO1gp3sk5U0 @ 00:44:27`) → cascade jusqu'à TF+2 (`@ 00:43:17` / `@ 00:47:55`) ; **absent = −1** (`24tpbSEAXeA @ 01:16:26`) ; cherchable sur un demi-TF inférieur (`@ 00:48:09`). ⚠️ Le vault ne pose PAS « contre-swing = force_courante » (déduction, cf. R13).
+
+**Table des dégradations (vérifiées verbatim) — remplace le compteur non sourcé :**
+
+| Configuration | Quantum | Condition | Source (vérifiée) | Câblé `cartographie.py` |
+|---|---|---|---|---|
+| Polarité OB d'origine | +1 positive / −2 négative | Convention A | force-energie §4.4 | ✅ `polarite` |
+| Liquidité sous le 1er swing | −1 | — | force-energie | ✅ `liquidite_sous_swing1` |
+| Zone sur zone (même TF) | −1 | la zone du dessus devient « visible » = liquidité | `NOAGAfn5VhQ @ 00:07:17` | ✅ `zone_sur_zone` |
+| Zone avant l'OB d'origine | **−1 temps** (= −2 demi-paliers) | FVG exceptée | `24tpbSEAXeA @ 00:30:18` | ⚠️ code applique −1 brut (incohérence, R13) |
+| Liquidité avant la liquidité (jeu interne) | −1 | cible intermédiaire + liquidité au-delà + jeu interne | `ufdWzL2kXUY @ 00:07:36` | ❌ manquant |
+| Liquidité au-dessus de la zone | −1 | **seulement si force ≥** (plus faible ne compte pas) | `WO1gp3sk5U0 @ 00:42:03` / `@ 02:01:55` | ❌ manquant |
+| Grosse zone épaisse | −2 | seuils ATR (2 vidéos divergent — non tranché, R13) | `WO1gp3sk5U0 @ 00:41:54` | ❌ différé Phase 2 |
+| Contre-swing absent | −1 | swing « né de rien » | `24tpbSEAXeA @ 01:16:26` | ❌ manquant |
+| Fausse cassure | **÷2** (la moitié) | jeu interne | `FFxKFvuYxrM @ 00:55:54` | (cf. force-energie) |
+
+Comptage canon : **pas de cumul automatique** par liquidité successive — lire la structure sur 2 cassages (`6eL9OUdSc94 @ 00:29:45`) ; `force ∈ [0, 11]` ; plafond **+2 sur les cassages uniquement** ; « en cas de doute, **sous-estimer** la force » (`7S_Iovunj20 @ 00:19:24`).
+
+### 3.3 Résolution (zones concurrentes) ✅ (corrigé 2026-06-18)
 Pour des zones concurrentes sur le chemin du prix :
-- **Forces effectives différentes** → la **plus forte gagne**, quelle que soit sa position : devant, le prix s'y arrête (n'atteint pas la plus faible derrière) ; derrière, elle **aimante** et casse la plus faible devant.
-- **Forces effectives égales** → la **plus profonde** (la plus loin dans le sens du move) gagne ; la superficielle = simple liquidité.
+- **Forces effectives différentes** → la **plus forte gagne** : devant, le prix s'y arrête (n'atteint pas la plus faible derrière) ; derrière, elle **aimante** et casse la plus faible devant.
+- **Forces effectives égales** → **NO-TRADE** (« +3 contre un +3 […] on ne sait pas où veut aller le marché », `HvbI6rA95tk`) ; à force égale, **« le premier à taper l'OB d'origine gagne »** (séquentialité, force-energie §6). **Corrigé** : l'ancienne formulation « la plus profonde gagne » n'est **pas sourcée**.
+- Deux jeux indépendants ne se retrouvent **jamais** au même niveau (`Gh_CK4kJ-iQ`), sauf natures différentes (FVG + base accélération).
 
 (Mapping des 7 cas → cf. [[ob-hierarchy-arbitration]].)
 
@@ -166,14 +188,15 @@ Pour des zones concurrentes sur le chemin du prix :
 | R4 | T2 « première des deux FVG » multi-gap (§T2) | 🟦 tranché 2026-06-18 : FVG la plus profonde dans le sens du swing (`be0adcdA7lw@01:05:08`), fusion assumée |
 | R5 | T4 corps base/accél `≤/>` 0.30 ATR233 (§T4) | ✅ sourcé `bXSNlOQ-h3c @ 01:38:21` — source unique/bruitée, reconfirmer/calibrer |
 | R6 | T5 tracé du gap (§T5) | 🟡 à valider visuellement |
-| R7 | « −1 par jeu interne » : définition opérationnelle du « jeu » (§3.2) | ⚠️ attestation, à préciser |
+| R7 | Modèle de force / « −1 par jeu interne » (§3.2) | 🟦 résolu 2026-06-18 : §3.2 = pointeur vers `force-energie.md` + table dégradations vérifiées (compteur non sourcé retiré) |
 | R8 | Zone grise (§T2-bis) : voisin TF+1/TF−1 indisponible | 🟦 tranché 2026-06-18 : voisin manquant = « non-proche » |
 | R9 | Seuil bas OB : 0.30 « pas d'OB » vs ~0.5 « prendre la bougie dessous » (§T2) | ⚠️ deux seuils voisins sourcés — fallback distinct à clarifier |
 | R10 | « traversé sans réaction » (§T1-bis c) | 🟦 tranché 2026-06-18 : proxy clôture-vs-mèche (mèche = rejet, clôture au-delà = mort) |
 | R11 | Re-tradabilité du reste (§T1-bis d) : gating par double cassage 1-2 | ⚠️ à formaliser (détection vs Phase 2 entrée) |
 | R12 | Symétrie bear de la règle clôture-au-delà-mèche (§T1-bis a) | 🟦 tranché 2026-06-18 : inférence adoptée (bear actif), non sourcée |
+| R13 | Modèle de force — points ouverts (§3.2) : contre-swing↔force_courante (déduction), seuils ATR épaisseur (2 vidéos divergent), quantum zone-avant-OB (−1 brut code vs −1 temps vault) | ⚠️ DÉFÉRÉ au sous-système `force-energie.md` / `cartographie.py` (hors spec OB) |
 
-> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R1, R2, R6, R7 (historiques) + R9, R11 (bords flous issus du dig).
+> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R1, R2, R6 (historiques) + R9, R11 (bords flous issus du dig) + R13 (modèle de force, déféré au sous-système).
 
 ## §5 — Testabilité
-Chaque détecteur reste une fonction pure `(série OHLC, ATR233) → liste de zones {type, side, top, bottom, bar_origine, TF}`. **Exception D2** : l'arbitrage de la zone grise (§T2-bis) introduit une **dépendance multi-TF** — la fonction T2 doit recevoir, pour la zone candidate, le corps mesuré sur TF+1 et TF−1 (ou un accès aux séries voisines). Déterministe ⇒ rejouable barre par barre, vérifiable sur replay TradingView. Les points R1–R12 sont les seuls degrés de liberté ; tout le reste est figé.
+Chaque détecteur reste une fonction pure `(série OHLC, ATR233) → liste de zones {type, side, top, bottom, bar_origine, TF}`. **Exception D2** : l'arbitrage de la zone grise (§T2-bis) introduit une **dépendance multi-TF** — la fonction T2 doit recevoir, pour la zone candidate, le corps mesuré sur TF+1 et TF−1 (ou un accès aux séries voisines). Déterministe ⇒ rejouable barre par barre, vérifiable sur replay TradingView. Les points R1–R13 sont les seuls degrés de liberté ; tout le reste est figé.
