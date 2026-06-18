@@ -9,7 +9,8 @@
 > - **D1 — §T3 corrigé au canon** : l'englobement S/D passe de « corps-sur-corps » à **mèche comprise** (clôture de l'englobante au-delà de l'extrême-mèche opposé), conforme à `6AyQ-UFocFg @ 00:01:21`.
 > - **D2 — §T2 : la zone grise est tranchée** par une **convention de doctrine humaine** (la vidéo la déclare discrétionnaire — « zone grise », `FFxKFvuYxrM @ 00:11:18`). Cette convention est marquée 🟦 = décision humaine assumée, HORS vault.
 > - **D3 + T4 officialisés** : les seuils 0.30 (borne basse OB §T2 ; corps de base ABA §T4), jusque-là non sourcés/inférés, sont désormais **sourcés** par le dig (`7S_Iovunj20 @ 01:05:17` et `bXSNlOQ-h3c @ 01:38:21`). Correction annexe : base ABA `1 à 5` → **`1 à 3`** bougies (canon `aba.md`).
-> - **R3 tranché — cycle de vie OB (§T1-bis)** : la convention non sourcée `close </> bord` est remplacée par le **modèle du « reste »** (épaisseur résiduelle ≥ 0.45 ATR233 = vivant ; traversé sans réaction = mort ; re-légitimation par double cassage). Citations vérifiées à la main. Bords flous restants tracés en R10–R12.
+> - **R3 tranché — cycle de vie OB (§T1-bis)** : la convention non sourcée `close </> bord` est remplacée par le **modèle du « reste »** (épaisseur résiduelle ≥ 0.45 ATR233 = vivant ; traversé sans réaction = mort ; re-légitimation par double cassage). Citations vérifiées à la main. Bords flous restants tracés en R11–R12.
+> - **R10 tranché — « sans réaction » = clôture vs mèche (§T1-bis c)** : seule une **clôture** au-delà du bord lointain consomme/tue l'OB ; une **mèche** qui dépasse mais clôture revenue dans la zone = rejet = la zone tient. Canon « la clôture prime ».
 
 ---
 
@@ -86,7 +87,7 @@ Citations vérifiées à la main dans les transcripts bruts. **Grandeur pivot = 
 - `reste < 0.45 × ATR233` → « **il y a plus rien** » → mort de fait (`@ 01:53:41`).
 - (0.45 ATR233 = même seuil que la validité FVG §1.4 → cohérent.)
 
-**(c) Mort par traversée** : si le prix **traverse** la zone **sans vraie réaction**, l'OB est consommé/désactivé (`FQO8F7WmlGY @ 00:10:39` + `@ 00:11:08`). Géométrie « traversé » = clôture au-delà du bord lointain ; la composante « **sans réaction** » n'est pas pleinement déterministe (cf. R10).
+**(c) Mort par traversée** : l'OB est consommé/désactivé quand une bougie **CLÔTURE au-delà du bord lointain** de la zone (ré-affinée). **R10 tranché (clôture vs mèche, 2026-06-18)** : seule la **clôture** consomme — une **mèche** qui dépasse le bord lointain mais dont la **clôture revient dans la zone** = **rejet = réaction** → la zone tient ; une **clôture** au-delà = traversée = mort. Canon : « la clôture prime » (`yiy47FOMIOk @ 00:12:33`) + mèche de rejet (`FQO8F7WmlGY @ 00:18:42`). Cohérent avec (b) : une clôture au-delà du bord lointain ⇒ reste = 0 < 0.45 ATR233. Source mort : `FQO8F7WmlGY @ 00:10:39` + `@ 00:11:08`. *(Proxy minimal assumé : ne capture pas le CHoCH TF inférieur ni la « réaction nette » de l'usage confirmation-d'entrée.)*
 
 **(d) Re-tradabilité du reste** : un OB entamé est « testé, point bar » → **plus une entrée propre** tant qu'il n'y a pas de **re-légitimation par un double cassage de structure (1-2)**, qui rouvre un retest du reste si `reste ≥ 0.45 ATR233` (`xFnFjopAzz8 @ 01:51:48`, `@ 01:54:18`). Formalisation du gating à préciser (cf. R11).
 
@@ -168,11 +169,11 @@ Pour des zones concurrentes sur le chemin du prix :
 | R7 | « −1 par jeu interne » : définition opérationnelle du « jeu » (§3.2) | ⚠️ attestation, à préciser |
 | R8 | Zone grise (§T2-bis) : voisin TF+1/TF−1 indisponible | 🟦 tranché 2026-06-18 : voisin manquant = « non-proche » |
 | R9 | Seuil bas OB : 0.30 « pas d'OB » vs ~0.5 « prendre la bougie dessous » (§T2) | ⚠️ deux seuils voisins sourcés — fallback distinct à clarifier |
-| R10 | « traversé sans réaction » (§T1-bis c) : composante « réaction » | ⚠️ non déterministe — géométrie OK, jugement de réaction à proxifier |
+| R10 | « traversé sans réaction » (§T1-bis c) | 🟦 tranché 2026-06-18 : proxy clôture-vs-mèche (mèche = rejet, clôture au-delà = mort) |
 | R11 | Re-tradabilité du reste (§T1-bis d) : gating par double cassage 1-2 | ⚠️ à formaliser (détection vs Phase 2 entrée) |
 | R12 | Symétrie bear de la règle clôture-au-delà-mèche (§T1-bis a) | ⚠️ inférée, non sourcée (seul le haussier est cité) |
 
-> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4 et **R3** (cycle de vie OB, §T1-bis). Restent ouverts : R1, R2, R4, R6, R7 (historiques) + R9–R12 (bords flous issus du dig).
+> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R1, R2, R4, R6, R7 (historiques) + R9, R11, R12 (bords flous issus du dig).
 
 ## §5 — Testabilité
 Chaque détecteur reste une fonction pure `(série OHLC, ATR233) → liste de zones {type, side, top, bottom, bar_origine, TF}`. **Exception D2** : l'arbitrage de la zone grise (§T2-bis) introduit une **dépendance multi-TF** — la fonction T2 doit recevoir, pour la zone candidate, le corps mesuré sur TF+1 et TF−1 (ou un accès aux séries voisines). Déterministe ⇒ rejouable barre par barre, vérifiable sur replay TradingView. Les points R1–R12 sont les seuls degrés de liberté ; tout le reste est figé.
