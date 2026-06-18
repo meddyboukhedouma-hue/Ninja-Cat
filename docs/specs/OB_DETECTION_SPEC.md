@@ -154,7 +154,7 @@ Les 5 types sont détectés sur **Large / Moyen / Court** (ebook p11). Chaque zo
   - **(portée du mouvement)** absent (descente directe) → portée au **même temps** (`24tpbSEAXeA @ 00:47:55` : « de H2 H2 s'il y a pas de contre-swing ») ; présent (descente en escalier, **≥ ~1 cm ≈ 1 ATR**, `WO1gp3sk5U0 @ 00:44:27`) → portée à **+1 temps (= +2 demi-paliers)**, PAS +2 temps (`24tpbSEAXeA @ 00:48:00` : « … on va jusqu'à H8 »). Le contre-swing est cherchable sur un **demi-TF inférieur** (`24tpbSEAXeA @ 00:48:14`).
   - **(dégradation)** son **absence = −1** (swing « né de rien », `24tpbSEAXeA @ 01:16:26`).
   - ⚠️ Le vault ne pose PAS « contre-swing = force_courante » (déduction, cf. R13).
-- **Exemples chiffrés vérifiés** (lecture directe transcripts) : (1) `ufdWzL2kXUY @ 00:06:07-07:55` — D1 −3 fois (zone qui absorbe −1, liquidité-avant-liquidité jeu interne −1, séquence 1-2 visible −1) = **M15**, recoupé bottom-up H4 −2 = M15 ; (2) `WO1gp3sk5U0 @ 00:41:38-42:42` — H8 −3 fois (zone épaisse −2, liquidité au-dessus −1) = **M8**.
+- **Exemples chiffrés vérifiés** (lecture directe transcripts) : (1) `ufdWzL2kXUY @ 00:06:07-07:55` — D1 −3 fois (zone qui absorbe −1, liquidité-avant-liquidité jeu interne −1, séquence 1-2 visible −1) = **M15**, recoupé bottom-up H4 −2 = M15 ; (2) `WO1gp3sk5U0 @ 00:41:38-42:42` — H8 −3 fois (zone **très** épaisse −2, liquidité au-dessus −1) = **M8**. ⚠️ **Arithmétique non-canon** : les exemples du corpus utilisent DEUX échelles (« temps pleins » D1/H4/H1/M15 vs « demi-temps » D1/H8/H4/H2/M30/M15) et se contredisent (`H4 −1 = H1` vs `= M15`) → la conversion « 1 fois = −2 demi-paliers » n'est PAS constante (cf. R13).
 
 **Table des dégradations (vérifiées verbatim) — remplace le compteur non sourcé :**
 
@@ -166,7 +166,8 @@ Les 5 types sont détectés sur **Large / Moyen / Court** (ebook p11). Chaque zo
 | Zone avant l'OB d'origine | **−1 temps** (= −2 demi-paliers) | FVG exceptée | `24tpbSEAXeA @ 00:30:18` | ⚠️ code applique −1 brut (incohérence, R13) |
 | Liquidité avant la liquidité (jeu interne) | −1 | cible intermédiaire + liquidité au-delà + jeu interne | `ufdWzL2kXUY @ 00:07:36` | ❌ manquant |
 | Liquidité au-dessus de la zone | −1 | **seulement si force ≥** (plus faible ne compte pas) | `WO1gp3sk5U0 @ 00:42:03` / `@ 02:01:55` | ❌ manquant |
-| Grosse zone épaisse | −2 | seuils ATR (2 vidéos divergent — non tranché, R13) | `WO1gp3sk5U0 @ 00:41:54` | ❌ différé Phase 2 |
+| Zone **épaisse** | **+1 (bonus masse) → net ~0** | « jeu d'un temps au-dessus » ; compense une dégradation (`WO1gp3sk5U0 @ 00:29:32` : « zéro force si vous êtes une zone épaisse ») | `WO1gp3sk5U0 @ 00:29:32` / `24tpbSEAXeA @ 01:13:19` | ❌ différé Phase 2 |
+| Zone **TRÈS épaisse** | **−2** | ≥ ~2,7 ATR (seuil `WO1gp3sk5U0` ; absent de `24tpbSEAXeA` — R13) | `WO1gp3sk5U0 @ 00:36:22` / exemple `@ 00:41:54` | ❌ différé Phase 2 |
 | Contre-swing absent | −1 | swing « né de rien » | `24tpbSEAXeA @ 01:16:26` | ❌ manquant |
 | Fausse cassure | **÷2** (la moitié) | jeu interne | `FFxKFvuYxrM @ 00:55:54` | (cf. force-energie) |
 
@@ -175,7 +176,7 @@ Comptage canon : **pas de cumul automatique** par liquidité successive — lire
 ### 3.3 Résolution (zones concurrentes) ✅ (corrigé 2026-06-18)
 Pour des zones concurrentes sur le chemin du prix :
 - **Forces effectives différentes** → la **plus forte gagne** : devant, le prix s'y arrête (n'atteint pas la plus faible derrière) ; derrière, elle **aimante** et casse la plus faible devant.
-- **Forces effectives égales** → **NO-TRADE** (« +3 contre un +3 […] on ne sait pas où veut aller le marché », `HvbI6rA95tk`) ; à force égale, **« le premier à taper l'OB d'origine gagne »** (séquentialité, force-energie §6). **Corrigé** : l'ancienne formulation « la plus profonde gagne » n'est **pas sourcée**.
+- **Forces effectives égales** → **NO-TRADE** (« +3 contre un +3 […] on ne sait pas où veut aller le marché », `HvbI6rA95tk @ 03:26:55`). À force égale, l'ordre de sélection le plus proche sourcé est **« premier POI rencontré dans le sens de marche »** (`poi.md#poi_premier_rencontre_dans_le_sens`, **sans timestamp Garry** → canon-faible). ⚠️ Ni « la plus profonde gagne » (formulation initiale) ni « le premier à taper l'OB d'origine gagne » (1ʳᵉ correction) ne sont sourcés verbatim — R13.
 - Deux jeux indépendants ne se retrouvent **jamais** au même niveau (`Gh_CK4kJ-iQ`), sauf natures différentes (FVG + base accélération).
 
 (Mapping des 7 cas → cf. [[ob-hierarchy-arbitration]].)
@@ -198,7 +199,7 @@ Pour des zones concurrentes sur le chemin du prix :
 | R10 | « traversé sans réaction » (§T1-bis c) | 🟦 tranché 2026-06-18 : proxy clôture-vs-mèche (mèche = rejet, clôture au-delà = mort) |
 | R11 | Re-tradabilité du reste (§T1-bis d) : gating par double cassage 1-2 | ⚠️ à formaliser (détection vs Phase 2 entrée) |
 | R12 | Symétrie bear de la règle clôture-au-delà-mèche (§T1-bis a) | 🟦 tranché 2026-06-18 : inférence adoptée (bear actif), non sourcée |
-| R13 | Modèle de force — points ouverts (§3.2) : contre-swing↔force_courante (déduction), seuils ATR épaisseur (2 vidéos divergent), quantum zone-avant-OB (−1 brut code vs −1 temps vault) | ⚠️ DÉFÉRÉ au sous-système `force-energie.md` / `cartographie.py` (hors spec OB) |
+| R13 | Modèle de force — points ouverts (§3.2), **incohérences de SOURCE confirmées par vérif exhaustive 2026-06-18** : (a) deux échelles « temps pleins » vs « demi-temps » non réconciliées → « 1 fois = −2 demi-paliers » non constant ; (b) `H4 −1 = H1` vs `= M15` (contradiction directe) ; (c) `D1 −2 = M15` vs `D1 −3 = M15` (même vidéo) ; (d) seuils ATR épaisseur (2 vidéos) ; (e) seuil contre-swing ≥1 cm vs ≥ moitié du swing ; (f) « premier POI » sans timestamp Garry ; (g) contre-swing↔force_courante (déduction) ; (h) zone-avant-OB −1 brut code vs −1 temps vault | ⚠️ DÉFÉRÉ au sous-système `force-energie.md` / `cartographie.py` — contradictions DANS la source (Garry), non résolvables sans décision humaine |
 
 > Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R1, R6 (historiques) + R9, R11 (bords flous issus du dig) + R13 (modèle de force, déféré au sous-système).
 
