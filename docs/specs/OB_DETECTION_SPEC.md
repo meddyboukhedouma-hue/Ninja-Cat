@@ -121,11 +121,12 @@ La doctrine Garry laisse ce choix **discrétionnaire** : « entre les deux c'est
 3. **Type** : `A` bull avalée → **zone d'offre** (vente) ; `A` bear avalée → **zone de demande** (achat).
 4. **Zone** = corps de `A` : `[body_low_A, body_high_A]`.
 
-### T4 — Base d'Accélération (ABA) ✅ (T4 officialisé : seuil 0.30 sourcé, source unique)
+### T4 — Base d'Accélération (ABA) ✅ (R5 tranché 2026-06-19 : base = morphologie canon, sans chiffre)
 **Séquence** : `accél_in → base → accél_out`.
-- **Bougie de base** : `body ≤ 0.30 × ATR233` ✅ **sourcé** : « pour qu'on considère une ABA, le corps ne doit pas dépasser 0,3 ATR » (`bXSNlOQ-h3c @ 01:38:21`). ⚠️ Réserve : source **unique**, transcription bruitée, contexte TF mensuel → à reconfirmer/calibrer (cf. R5). **ET** mèche longue des **deux** côtés (`upper_wick/range ≥ 0.50` ET `lower_wick/range ≥ 0.50`).
-- **Base** = **1 à 3** bougies de base consécutives (corrigé 5→3 au canon : `aba.md` « 1, 2 ou 3 bougies — au-delà, ce n'est plus une base » ; params `aba_base_bougies_min=1` / `max=3`).
-- **Bougie d'accél** : `body > 0.30 × ATR233` (complément du seuil base, même source).
+- **Bougie de base** — **morphologie canon, sans chiffre** : **petit corps + longues mèches des DEUX côtés** (`qCAdx5LIcL0 @ 00:13:03` ; `ejjGH70rhbA @ 00:16:57`). Opérationnalisation proposée (**inférence à valider** — le canon ne donne aucune formule) : `body < upper_wick` **ET** `body < lower_wick` (chaque mèche dépasse le corps — **relatif, sans ATR**). *Remplace l'ancien `upper_wick/range ≥ 0.50 ET lower_wick/range ≥ 0.50`, qui était **impossible** (somme > range ⇒ corps ≤ 0).* *(Le `body ≤ 0.30 ATR` n'est **PAS** dans le canon distillé — `aba.md` laisse le seuil en placeholder ; unique source garbled sans ATR `bXSNlOQ-h3c @ 01:38:21` → retiré du critère, conservé en proxy tunable optionnel.)*
+- **Base** = **1 à 3** bougies de base consécutives (canon `aba.md` ; au-delà, ce n'est plus une base).
+- **Morphologie typique** (indicative, **non requise**) : séquence **baissière→haussière** (bull) / haussière→baissière (bear) — `ejjGH70rhbA @ 05:28:59` (1 passage, contexte ABA imbriqué).
+- **Bougie d'accél** : bougie **impulsive** (§1.6) encadrant la base (l'ancien `body > 0.30 ATR` partageait le proxy garbled → hors canon).
 - **Validation `accél_out`** (verrouillé) : sa clôture franchit l'extrême de la base — bull : `close > base_high` ; bear : `close < base_low`.
 - **Zone** = `[min(L) de la base, max(H) de la base]`, **mèches incluses**.
 
@@ -189,7 +190,7 @@ Pour des zones concurrentes sur le chemin du prix :
 | R2 | BoS externe vs interne pour l'impulsion (§1.5) | 🟦 tranché 2026-06-18 : BoS EXTERNE requis, sur corps (`jevVat55Svg@00:28:27`) ; interne ne valide pas |
 | R3 | Cycle de vie OB (mitigation/mort) | 🟦 résolu 2026-06-18 — modèle du « reste » (§T1-bis) |
 | R4 | T2 « première des deux FVG » multi-gap (§T2) | 🟦 tranché 2026-06-18 : FVG la plus profonde dans le sens du swing (`be0adcdA7lw@01:05:08`), fusion assumée |
-| R5 | T4 corps base/accél `≤/>` 0.30 ATR233 (§T4) | ✅ sourcé `bXSNlOQ-h3c @ 01:38:21` — source unique/bruitée, reconfirmer/calibrer |
+| R5 | Base ABA — corps (§T4) | 🟦 tranché 2026-06-19 : canon = morphologie qualitative (petit corps + longues mèches deux côtés) ; opérationnalisé `body < chaque mèche` (inférence) ; `0.30 ATR` PAS dans le canon distillé (proxy garbled `bXSNlOQ-h3c`, retiré du critère). Corrige aussi l'ancien critère mèche impossible (somme>range) |
 | R6 | T5 tracé du wick block (§T5) | 🟦/🟡 R6 2026-06-18 : zone = inter-mèches (corps exclu, canon `FQO8F7WmlGY@00:09`) ; bords exacts du gap → validation visuelle TV déférée |
 | R7 | Modèle de force / « −1 par jeu interne » (§3.2) | 🟦 résolu 2026-06-18 : §3.2 = pointeur vers `force-energie.md` + table dégradations vérifiées (compteur non sourcé retiré) |
 | R8 | Zone grise (§T2-bis) : voisin TF+1/TF−1 indisponible | 🟦 tranché 2026-06-18 : voisin manquant = « non-proche » |
@@ -199,7 +200,7 @@ Pour des zones concurrentes sur le chemin du prix :
 | R12 | Symétrie bear de la règle clôture-au-delà-mèche (§T1-bis a) | 🟦 tranché 2026-06-18 : inférence adoptée (bear actif), non sourcée |
 | R13 | Modèle de force — points ouverts (§3.2). **Arithmétique RÉSOLUE par lecture directe 2026-06-18** : 1 fois = 1 temps = 2 demi-paliers, échelle D1·H4·H1·M15 (`6eL9OUdSc94@00:43:18`, Garry rejette les demi-temps) — les « contradictions » précédentes (H4−1=M15, deux échelles, D1−2 vs −3) étaient des passages garbled / lapsus oraux de Garry / miscounts d'agent, PAS deux doctrines. Restent ouverts : (a) seuils ATR épaisseur (2 vidéos divergent) ; (b) seuil contre-swing ≥1 cm vs ≥ moitié du swing ; (c) « premier POI » sans timestamp Garry ; (d) contre-swing↔force_courante (déduction) ; (e) zone-avant-OB −1 brut code vs −1 temps vault | ⚠️ DÉFÉRÉ au sous-système `force-energie.md` / `cartographie.py` |
 
-> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R5 (T4 base ABA — sourcé, à reconfirmer/calibrer) + R6 (géométrie exacte du gap → visuel déféré) + R13 (modèle de force, déféré au sous-système).
+> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R6 (géométrie exacte du gap → visuel déféré) + R13 (modèle de force, déféré au sous-système). *(Inférences à valider, non bloquantes : opérationnalisation morphologie base §T4 ; formule body<mèche.)*
 
 ## §5 — Testabilité
 Chaque détecteur reste une fonction pure `(série OHLC, ATR233) → liste de zones {type, side, top, bottom, bar_origine, TF}`. **Exception D2** : l'arbitrage de la zone grise (§T2-bis) introduit une **dépendance multi-TF** — la fonction T2 doit recevoir, pour la zone candidate, le corps mesuré sur TF+1 et TF−1 (ou un accès aux séries voisines). Déterministe ⇒ rejouable barre par barre, vérifiable sur replay TradingView. Les points R1–R13 sont les seuls degrés de liberté ; tout le reste est figé.
