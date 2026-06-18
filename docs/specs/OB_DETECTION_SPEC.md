@@ -129,12 +129,10 @@ La doctrine Garry laisse ce choix **discrétionnaire** : « entre les deux c'est
 - **Validation `accél_out`** (verrouillé) : sa clôture franchit l'extrême de la base — bull : `close > base_high` ; bear : `close < base_low`.
 - **Zone** = `[min(L) de la base, max(H) de la base]`, **mèches incluses**.
 
-### T5 — Wick Block 🟡 (à valider sur chart)
-**Algorithme** : 1 à 2 bougies à mèche longue (§1.7) côté du rejet.
-- **Bull** (mèches **basses** longues) : `bottom = min(L₁, L₂)`, `top = min(body_low₁, body_low₂)`.
-- **Bear** (mèches **hautes** longues) : `top = max(H₁, H₂)`, `bottom = max(body_high₁, body_high₂)`.
-- Cas 1 bougie (dégénéré) : bull `bottom = L`, `top = body_low` ; bear `top = H`, `bottom = body_high`.
-🟡 Tracé verrouillé **par défaut**, seul point que le décideur confirme à l'œil (vidéo contradictoire).
+### T5 — Wick Block 🟡 (R6 : inter-mèches ; géométrie exacte à valider)
+**Définition canon** (`FQO8F7WmlGY @ 00:09:07` & `@ 00:12:42` ; `NSs7Sa8VTSI @ 02:26:41` ; `order-block.md#4`) : **deux** bougies à énorme mèche dont l'**écart entre les mèches** forme la zone — « s'il y a un **écart entre deux mèches**, alors c'est un wick block ». Insistance canon : « **la vraie lecture n'est PAS dans le corps mais dans l'espace laissé entre les deux mèches** » → **le corps ne définit PAS la zone**.
+**Algorithme** : **2 bougies** à mèche longue (§1.7) côté du rejet — une mèche **seule** « peut ne rien être » (`NSs7Sa8VTSI @ 02:26:41`) → exclue. Zone = le **gap entre les deux mèches** : bull → côté des **bas** des deux mèches ; bear → côté des **hauts** des deux mèches.
+🟡 **R6 tranché (2026-06-18)** : zone = **inter-mèches** (corrigé — l'ancien tracé `top = body_low` utilisait le **corps**, NON canon). Les **bords géométriques exacts** du gap restent ambigus dans le canon (« entre les bas » vs « entre les hauts et les bas des deux mèches ») → **validation visuelle TV déférée** (seul point où le visuel lève une ambiguïté que le texte ne lève pas).
 
 ---
 
@@ -192,7 +190,7 @@ Pour des zones concurrentes sur le chemin du prix :
 | R3 | Cycle de vie OB (mitigation/mort) | 🟦 résolu 2026-06-18 — modèle du « reste » (§T1-bis) |
 | R4 | T2 « première des deux FVG » multi-gap (§T2) | 🟦 tranché 2026-06-18 : FVG la plus profonde dans le sens du swing (`be0adcdA7lw@01:05:08`), fusion assumée |
 | R5 | T4 corps base/accél `≤/>` 0.30 ATR233 (§T4) | ✅ sourcé `bXSNlOQ-h3c @ 01:38:21` — source unique/bruitée, reconfirmer/calibrer |
-| R6 | T5 tracé du gap (§T5) | 🟡 à valider visuellement |
+| R6 | T5 tracé du wick block (§T5) | 🟦/🟡 R6 2026-06-18 : zone = inter-mèches (corps exclu, canon `FQO8F7WmlGY@00:09`) ; bords exacts du gap → validation visuelle TV déférée |
 | R7 | Modèle de force / « −1 par jeu interne » (§3.2) | 🟦 résolu 2026-06-18 : §3.2 = pointeur vers `force-energie.md` + table dégradations vérifiées (compteur non sourcé retiré) |
 | R8 | Zone grise (§T2-bis) : voisin TF+1/TF−1 indisponible | 🟦 tranché 2026-06-18 : voisin manquant = « non-proche » |
 | R9 | Seuil bas OB : 0.30 « pas d'OB » vs ~0.5 « bougie dessous » (§T2) | 🟦 tranché 2026-06-18 : DEUX règles distinctes — A (0,30 ATR, présence, encodé) ; B (~0,5 ATR, placement Phase 2, OB microscopique → bougie dessous) |
@@ -201,7 +199,7 @@ Pour des zones concurrentes sur le chemin du prix :
 | R12 | Symétrie bear de la règle clôture-au-delà-mèche (§T1-bis a) | 🟦 tranché 2026-06-18 : inférence adoptée (bear actif), non sourcée |
 | R13 | Modèle de force — points ouverts (§3.2). **Arithmétique RÉSOLUE par lecture directe 2026-06-18** : 1 fois = 1 temps = 2 demi-paliers, échelle D1·H4·H1·M15 (`6eL9OUdSc94@00:43:18`, Garry rejette les demi-temps) — les « contradictions » précédentes (H4−1=M15, deux échelles, D1−2 vs −3) étaient des passages garbled / lapsus oraux de Garry / miscounts d'agent, PAS deux doctrines. Restent ouverts : (a) seuils ATR épaisseur (2 vidéos divergent) ; (b) seuil contre-swing ≥1 cm vs ≥ moitié du swing ; (c) « premier POI » sans timestamp Garry ; (d) contre-swing↔force_courante (déduction) ; (e) zone-avant-OB −1 brut code vs −1 temps vault | ⚠️ DÉFÉRÉ au sous-système `force-energie.md` / `cartographie.py` |
 
-> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R6 (historique) + R11 (bord flou issu du dig) + R13 (modèle de force, déféré au sous-système).
+> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R6 (géométrie exacte du gap → visuel déféré) + R11 (bord flou issu du dig) + R13 (modèle de force, déféré au sous-système).
 
 ## §5 — Testabilité
 Chaque détecteur reste une fonction pure `(série OHLC, ATR233) → liste de zones {type, side, top, bottom, bar_origine, TF}`. **Exception D2** : l'arbitrage de la zone grise (§T2-bis) introduit une **dépendance multi-TF** — la fonction T2 doit recevoir, pour la zone candidate, le corps mesuré sur TF+1 et TF−1 (ou un accès aux séries voisines). Déterministe ⇒ rejouable barre par barre, vérifiable sur replay TradingView. Les points R1–R13 sont les seuls degrés de liberté ; tout le reste est figé.
