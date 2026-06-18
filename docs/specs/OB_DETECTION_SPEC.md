@@ -9,6 +9,7 @@
 > - **D1 — §T3 corrigé au canon** : l'englobement S/D passe de « corps-sur-corps » à **mèche comprise** (clôture de l'englobante au-delà de l'extrême-mèche opposé), conforme à `6AyQ-UFocFg @ 00:01:21`.
 > - **D2 — §T2 : la zone grise est tranchée** par une **convention de doctrine humaine** (la vidéo la déclare discrétionnaire — « zone grise », `FFxKFvuYxrM @ 00:11:18`). Cette convention est marquée 🟦 = décision humaine assumée, HORS vault.
 > - **D3 + T4 officialisés** : les seuils 0.30 (borne basse OB §T2 ; corps de base ABA §T4), jusque-là non sourcés/inférés, sont désormais **sourcés** par le dig (`7S_Iovunj20 @ 01:05:17` et `bXSNlOQ-h3c @ 01:38:21`). Correction annexe : base ABA `1 à 5` → **`1 à 3`** bougies (canon `aba.md`).
+> - **R3 tranché — cycle de vie OB (§T1-bis)** : la convention non sourcée `close </> bord` est remplacée par le **modèle du « reste »** (épaisseur résiduelle ≥ 0.45 ATR233 = vivant ; traversé sans réaction = mort ; re-légitimation par double cassage). Citations vérifiées à la main. Bords flous restants tracés en R10–R12.
 
 ---
 
@@ -73,7 +74,23 @@ Bougie à **mèche longue** côté `X` si `X_wick / range ≥ 0.50` (`X` = upper
 2. La jambe montante depuis `PL` est impulsive (§1.6) — sinon rejet.
 3. **OB candle** = la **dernière bougie bear** (`C<O`) au plus tard à `PL`, en remontant jusqu'à `lookback = 30` barres.
 4. **Zone (tracé verrouillé `open→low`)** : `top = O_ob`, `bottom = L_ob`. (Bear : `top = H_ob`, `bottom = O_ob`, tracé `open→high`.)
-**Invalidation/mitigation** ⚠️ : bull mitigé si `close < bottom` ; bear si `close > top` (convention code, **pas sourcée Garry** — à confirmer : mitigation sur clôture vs mèche).
+**Invalidation / cycle de vie** : voir **§T1-bis** (R3 tranché — modèle du reste). Remplace l'ancienne convention non sourcée `close </> bord`.
+
+#### T1-bis — Cycle de vie de l'OB (R3 — modèle du « reste », tranché 2026-06-18)
+Citations vérifiées à la main dans les transcripts bruts. **Grandeur pivot = l'épaisseur du RESTE de la zone** (pas un compteur de tapes). Le 50 % et les « 3 conditions » des deux vidéos ne sont pas des seuils rivaux : ce sont deux mesures de « combien il reste ».
+
+**(a) Persistance à la formation** : l'OB reste valide tant qu'aucune bougie postérieure ne **clôture au-delà de sa mèche** (les bougies qui naissent après doivent rester « enfermées » dans le `[plus haut ; plus bas]` de l'OB). Bull : invalidé si `close > H_ob` ; bear : `close < L_ob` (**symétrie inférée**, cf. R12). Source `Kp68Daasc6I @ 01:09:34` (« si la bougie ferme au-dessus de la mèche, ça c'est plus rien »).
+
+**(b) Entame partielle → consommation, le reste survit** : un retour qui pénètre la zone **consomme une partie** (« tu as pris une certaine quantité… tu as pas tout pris », `xFnFjopAzz8 @ 01:52:14`). On **ré-affine** l'OB sur le reste non consommé :
+- `reste ≥ 0.45 × ATR233` → l'OB **survit** comme zone résiduelle ré-affinée (`@ 01:53:18`).
+- `reste < 0.45 × ATR233` → « **il y a plus rien** » → mort de fait (`@ 01:53:41`).
+- (0.45 ATR233 = même seuil que la validité FVG §1.4 → cohérent.)
+
+**(c) Mort par traversée** : si le prix **traverse** la zone **sans vraie réaction**, l'OB est consommé/désactivé (`FQO8F7WmlGY @ 00:10:39` + `@ 00:11:08`). Géométrie « traversé » = clôture au-delà du bord lointain ; la composante « **sans réaction** » n'est pas pleinement déterministe (cf. R10).
+
+**(d) Re-tradabilité du reste** : un OB entamé est « testé, point bar » → **plus une entrée propre** tant qu'il n'y a pas de **re-légitimation par un double cassage de structure (1-2)**, qui rouvre un retest du reste si `reste ≥ 0.45 ATR233` (`xFnFjopAzz8 @ 01:51:48`, `@ 01:54:18`). Formalisation du gating à préciser (cf. R11).
+
+**Symétrie** : (b), (c), (d) sont **neutres de sens** (formulés en « zone »/« OB ») → symétriques par construction. Seule (a) a une symétrie bear **inférée** (R12).
 
 ### T2 — OB + Imbalance ✅ / 🟦 (zone grise = décision humaine)
 **Pré-condition** : l'impulsion crée une **FVG valide** (§1.4). Sinon → pas un T2.
@@ -144,15 +161,18 @@ Pour des zones concurrentes sur le chemin du prix :
 |---|---|---|
 | R1 | Rôle exact de `noise = 0.5` (§1.3) | ⚠️ hypothèse `body ≥ 0.5×range` |
 | R2 | BoS externe vs interne pour l'impulsion (§1.5) | ⚠️ défaut = dernier pivot 2/2 |
-| R3 | Mitigation T1 : clôture vs mèche, et bord (§T1) | ⚠️ défaut = clôture au-delà du bord lointain |
+| R3 | Cycle de vie OB (mitigation/mort) | 🟦 résolu 2026-06-18 — modèle du « reste » (§T1-bis) |
 | R4 | T2 « première des deux FVG » : cas multi-gap ? (§T2) | ⚠️ interprété = boîte FVG de l'impulsion |
 | R5 | T4 corps base/accél `≤/>` 0.30 ATR233 (§T4) | ✅ sourcé `bXSNlOQ-h3c @ 01:38:21` — source unique/bruitée, reconfirmer/calibrer |
 | R6 | T5 tracé du gap (§T5) | 🟡 à valider visuellement |
 | R7 | « −1 par jeu interne » : définition opérationnelle du « jeu » (§3.2) | ⚠️ attestation, à préciser |
 | R8 | Zone grise (§T2-bis) : voisin TF+1/TF−1 indisponible | 🟦 tranché 2026-06-18 : voisin manquant = « non-proche » |
 | R9 | Seuil bas OB : 0.30 « pas d'OB » vs ~0.5 « prendre la bougie dessous » (§T2) | ⚠️ deux seuils voisins sourcés — fallback distinct à clarifier |
+| R10 | « traversé sans réaction » (§T1-bis c) : composante « réaction » | ⚠️ non déterministe — géométrie OK, jugement de réaction à proxifier |
+| R11 | Re-tradabilité du reste (§T1-bis d) : gating par double cassage 1-2 | ⚠️ à formaliser (détection vs Phase 2 entrée) |
+| R12 | Symétrie bear de la règle clôture-au-delà-mèche (§T1-bis a) | ⚠️ inférée, non sourcée (seul le haussier est cité) |
 
-> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a éclairé R3 (mitigation T1 = clôture **au-delà de la mèche**, `ob_invalide_si_bougie_ferme_au_dessus_meche`), **non encore répercuté** ici — à traiter dans une passe dédiée. D3 et T4 ont été **officialisés** dans cette révision (sourcés ci-dessus).
+> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4 et **R3** (cycle de vie OB, §T1-bis). Restent ouverts : R1, R2, R4, R6, R7 (historiques) + R9–R12 (bords flous issus du dig).
 
 ## §5 — Testabilité
-Chaque détecteur reste une fonction pure `(série OHLC, ATR233) → liste de zones {type, side, top, bottom, bar_origine, TF}`. **Exception D2** : l'arbitrage de la zone grise (§T2-bis) introduit une **dépendance multi-TF** — la fonction T2 doit recevoir, pour la zone candidate, le corps mesuré sur TF+1 et TF−1 (ou un accès aux séries voisines). Déterministe ⇒ rejouable barre par barre, vérifiable sur replay TradingView. Les points R1–R9 sont les seuls degrés de liberté ; tout le reste est figé.
+Chaque détecteur reste une fonction pure `(série OHLC, ATR233) → liste de zones {type, side, top, bottom, bar_origine, TF}`. **Exception D2** : l'arbitrage de la zone grise (§T2-bis) introduit une **dépendance multi-TF** — la fonction T2 doit recevoir, pour la zone candidate, le corps mesuré sur TF+1 et TF−1 (ou un accès aux séries voisines). Déterministe ⇒ rejouable barre par barre, vérifiable sur replay TradingView. Les points R1–R12 sont les seuls degrés de liberté ; tout le reste est figé.
