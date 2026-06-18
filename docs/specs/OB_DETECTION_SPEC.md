@@ -98,7 +98,7 @@ Citations vérifiées à la main dans les transcripts bruts. **Grandeur pivot = 
 **Bougie de départ** `d` = bougie impulsion du FVG (la `i−1` du triplet). Mesure `body_d` (en ATR233) :
 - `body_d < 0.30` **ou** pas de vrai corps (§1.3) sur les 2–3 dernières → **pas d'OB**. *(D3 — borne basse 0.30 **sourcée** : « le corps […] fait 0,3 ATR minimum pour constituer un order bloc d'origine. J'ai 0,24. Donc […] pas assez épais → pas d'order bloc », `7S_Iovunj20 @ 01:05:17`. Tension résiduelle : un seuil voisin ~0.5 ATR (« pas même 1 demi-cm » → prendre la bougie dessous, `0OeOoBj-Hb0 @ 00:47:47`) concerne un **fallback distinct**, cf. R9.)*
 - `0.30 ≤ body_d ≤ 0.63` → **OB = la bougie `d`**, tracé = **son corps** `[body_low_d, body_high_d]`.
-- `body_d > 0.65` → impulsion trop violente → **OB = la FVG** (§1.4), tracé = la boîte FVG. *(« première des deux FVG » dans la doctrine — interprété comme la boîte FVG de l'impulsion ; ⚠️ confirmer si « deux FVG » désigne un cas multi-gap.)*
+- `body_d > 0.65` → impulsion trop violente → **OB = la FVG** (§1.4), tracé = la boîte FVG. **R4 tranché (2026-06-18)** : cas standard = la FVG de l'impulsion ; si **plusieurs FVG superposées** (« deux FVG » de Garry), prendre **la plus profonde dans le sens du swing** — haussier → la plus **basse**, baissier → la plus **haute** (« pas la plus haute » au sens naïf) — sourcé `be0adcdA7lw @ 01:05:08`. *(Fusion assumée : appliquer ce critère au déclencheur corps>0,65 de `FQO8F7WmlGY @ 00:03:47` est déductif, non verbatim Garry. Cas > 2 FVG non couvert par le canon.)*
 - `0.63 < body_d ≤ 0.65` → **ZONE GRISE** → arbitrage multi-TF (§T2-bis).
 
 #### T2-bis — Arbitrage de la zone grise ]0.63 ; 0.65] 🟦 (convention humaine, HORS vault)
@@ -163,7 +163,7 @@ Pour des zones concurrentes sur le chemin du prix :
 | R1 | Rôle exact de `noise = 0.5` (§1.3) | ⚠️ hypothèse `body ≥ 0.5×range` |
 | R2 | BoS externe vs interne pour l'impulsion (§1.5) | ⚠️ défaut = dernier pivot 2/2 |
 | R3 | Cycle de vie OB (mitigation/mort) | 🟦 résolu 2026-06-18 — modèle du « reste » (§T1-bis) |
-| R4 | T2 « première des deux FVG » : cas multi-gap ? (§T2) | ⚠️ interprété = boîte FVG de l'impulsion |
+| R4 | T2 « première des deux FVG » multi-gap (§T2) | 🟦 tranché 2026-06-18 : FVG la plus profonde dans le sens du swing (`be0adcdA7lw@01:05:08`), fusion assumée |
 | R5 | T4 corps base/accél `≤/>` 0.30 ATR233 (§T4) | ✅ sourcé `bXSNlOQ-h3c @ 01:38:21` — source unique/bruitée, reconfirmer/calibrer |
 | R6 | T5 tracé du gap (§T5) | 🟡 à valider visuellement |
 | R7 | « −1 par jeu interne » : définition opérationnelle du « jeu » (§3.2) | ⚠️ attestation, à préciser |
@@ -173,7 +173,7 @@ Pour des zones concurrentes sur le chemin du prix :
 | R11 | Re-tradabilité du reste (§T1-bis d) : gating par double cassage 1-2 | ⚠️ à formaliser (détection vs Phase 2 entrée) |
 | R12 | Symétrie bear de la règle clôture-au-delà-mèche (§T1-bis a) | 🟦 tranché 2026-06-18 : inférence adoptée (bear actif), non sourcée |
 
-> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R1, R2, R4, R6, R7 (historiques) + R9, R11 (bords flous issus du dig).
+> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R1, R2, R6, R7 (historiques) + R9, R11 (bords flous issus du dig).
 
 ## §5 — Testabilité
 Chaque détecteur reste une fonction pure `(série OHLC, ATR233) → liste de zones {type, side, top, bottom, bar_origine, TF}`. **Exception D2** : l'arbitrage de la zone grise (§T2-bis) introduit une **dépendance multi-TF** — la fonction T2 doit recevoir, pour la zone candidate, le corps mesuré sur TF+1 et TF−1 (ou un accès aux séries voisines). Déterministe ⇒ rejouable barre par barre, vérifiable sur replay TradingView. Les points R1–R12 sont les seuls degrés de liberté ; tout le reste est figé.
