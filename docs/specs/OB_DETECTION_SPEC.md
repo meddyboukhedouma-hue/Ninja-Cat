@@ -48,14 +48,14 @@ Sur le triplet `(i−2, i−1, i)`, la bougie `i−1` est l'impulsion, `i−2`/`
 - **FVG baissière** : `gap = L[i−2] − H[i]` ; valide si `gap ≥ 0.45 × ATR233`.
 Zone FVG = `[H[i−2], L[i]]` (bull) / `[H[i], L[i−2]]` (bear). Source : ebook p7/p17.
 
-### 1.5 BoS (Break of Structure) ✅ (avec 1 sous-décision)
+### 1.5 BoS (Break of Structure) ✅ (R2 tranché 2026-06-18 : externe, sur corps)
 `P_high` = dernier pivot_high 2/2 confirmé ; `P_low` = dernier pivot_low 2/2 confirmé.
 - **BoS haussier** : `close > P_high`.
 - **BoS baissier** : `close < P_low`.
-⚠️ **Sous-décision ouverte** : l'ebook distingue BoS **externe** (swing majeur) vs **interne** (creux local) [p3]. Par défaut on prend la **cassure du dernier pivot 2/2** (externe le plus proche). À confirmer si l'impulsion exige spécifiquement l'externe.
+**R2 tranché** : le BoS qui valide l'impulsion (donc l'OB) est le **BoS EXTERNE** — la 2e cassure d'un swing **majeur**, le « 2 » après le CHoCH (`jevVat55Svg @ 00:28:27`, vérifié : « Choche + cassage externe. Une fois, deux fois → identification de l'order block »). Le **BoS interne** (creux local, « mouvement mineur qui ne change pas la tendance », `bos_interne_definition`) **ne valide pas**. La cassure doit être **bâtie sur des corps clôturés**, pas des mèches/sweeps (`yiy47FOMIOk @ 00:12:33` ; `mpkBAJCdkgs @ 01:16:03`) — mèche seule = fausse cassure (énergie ÷2, cf. §3.2). Aligné `cartographie.py` (exclut `BOS_INTERNE` de la construction séquence/OB). *(Déduction forte : le vault associe toujours la validation d'OB au cassage externe, sans écrire littéralement l'exclusion de l'interne.)*
 
 ### 1.6 Impulsion ✅ (VERROUILLÉ)
-Un mouvement est **impulsif** ssi il **casse la structure (BoS, §1.5) OU laisse une FVG valide (§1.4)**.
+Un mouvement est **impulsif** ssi il **casse la structure (BoS externe, §1.5 / R2) OU laisse une FVG valide (§1.4)**.
 Socle des 5 types. Rejeté : `1.5×ATR14` (proxy code), `≥3 ATR233 / 5 bougies` (= grande impulsion scénario D seulement).
 
 ### 1.7 Mèche longue ✅
@@ -187,7 +187,7 @@ Pour des zones concurrentes sur le chemin du prix :
 | # | Point | Statut |
 |---|---|---|
 | R1 | Rôle exact de `noise = 0.5` (§1.3) | ⚠️ hypothèse `body ≥ 0.5×range` |
-| R2 | BoS externe vs interne pour l'impulsion (§1.5) | ⚠️ défaut = dernier pivot 2/2 |
+| R2 | BoS externe vs interne pour l'impulsion (§1.5) | 🟦 tranché 2026-06-18 : BoS EXTERNE requis, sur corps (`jevVat55Svg@00:28:27`) ; interne ne valide pas |
 | R3 | Cycle de vie OB (mitigation/mort) | 🟦 résolu 2026-06-18 — modèle du « reste » (§T1-bis) |
 | R4 | T2 « première des deux FVG » multi-gap (§T2) | 🟦 tranché 2026-06-18 : FVG la plus profonde dans le sens du swing (`be0adcdA7lw@01:05:08`), fusion assumée |
 | R5 | T4 corps base/accél `≤/>` 0.30 ATR233 (§T4) | ✅ sourcé `bXSNlOQ-h3c @ 01:38:21` — source unique/bruitée, reconfirmer/calibrer |
@@ -200,7 +200,7 @@ Pour des zones concurrentes sur le chemin du prix :
 | R12 | Symétrie bear de la règle clôture-au-delà-mèche (§T1-bis a) | 🟦 tranché 2026-06-18 : inférence adoptée (bear actif), non sourcée |
 | R13 | Modèle de force — points ouverts (§3.2) : contre-swing↔force_courante (déduction), seuils ATR épaisseur (2 vidéos divergent), quantum zone-avant-OB (−1 brut code vs −1 temps vault) | ⚠️ DÉFÉRÉ au sous-système `force-energie.md` / `cartographie.py` (hors spec OB) |
 
-> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R1, R2, R6 (historiques) + R9, R11 (bords flous issus du dig) + R13 (modèle de force, déféré au sous-système).
+> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R1, R6 (historiques) + R9, R11 (bords flous issus du dig) + R13 (modèle de force, déféré au sous-système).
 
 ## §5 — Testabilité
 Chaque détecteur reste une fonction pure `(série OHLC, ATR233) → liste de zones {type, side, top, bottom, bar_origine, TF}`. **Exception D2** : l'arbitrage de la zone grise (§T2-bis) introduit une **dépendance multi-TF** — la fonction T2 doit recevoir, pour la zone candidate, le corps mesuré sur TF+1 et TF−1 (ou un accès aux séries voisines). Déterministe ⇒ rejouable barre par barre, vérifiable sur replay TradingView. Les points R1–R13 sont les seuls degrés de liberté ; tout le reste est figé.
