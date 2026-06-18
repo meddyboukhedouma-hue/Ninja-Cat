@@ -88,6 +88,11 @@ class _FakeEvaluator:
         return self._return_value
 
 
+def _boom(_expr):
+    """Evaluator qui lève — sert les tests de dégradation gracieuse."""
+    raise RuntimeError("CDP down")
+
+
 def test_paper_trader_is_an_executionport():
     assert isinstance(PaperTraderBroker(evaluator=_FakeEvaluator()), ExecutionPort)
 
@@ -124,10 +129,7 @@ def test_submit_is_false_for_non_true_results():
 
 def test_submit_graceful_when_evaluator_raises():
     """Dégradation gracieuse : un transport qui lève → False, jamais d'exception."""
-    def boom(_expr):
-        raise RuntimeError("CDP down")
-
-    broker = PaperTraderBroker(evaluator=boom)
+    broker = PaperTraderBroker(evaluator=_boom)
     assert broker.submit(Order("X", 1.0, Side.BUY)) is False
 
 
@@ -146,10 +148,7 @@ def test_close_returns_true_when_evaluator_true():
 
 
 def test_close_graceful_when_evaluator_raises():
-    def boom(_expr):
-        raise RuntimeError("CDP down")
-
-    assert PaperTraderBroker(evaluator=boom).close("X") is False
+    assert PaperTraderBroker(evaluator=_boom).close("X") is False
 
 
 def test_default_cdp_transport_degrades_gracefully_when_unreachable():
