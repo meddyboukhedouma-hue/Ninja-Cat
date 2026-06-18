@@ -80,7 +80,7 @@ Bougie à **mèche longue** côté `X` si `X_wick / range ≥ 0.50` (`X` = upper
 #### T1-bis — Cycle de vie de l'OB (R3 — modèle du « reste », tranché 2026-06-18)
 Citations vérifiées à la main dans les transcripts bruts. **Grandeur pivot = l'épaisseur du RESTE de la zone** (pas un compteur de tapes). Le 50 % et les « 3 conditions » des deux vidéos ne sont pas des seuils rivaux : ce sont deux mesures de « combien il reste ».
 
-**(a) Persistance à la formation** : l'OB reste valide tant qu'aucune bougie postérieure ne **clôture au-delà de sa mèche** (les bougies qui naissent après doivent rester « enfermées » dans le `[plus haut ; plus bas]` de l'OB). Bull : invalidé si `close > H_ob` ; bear : `close < L_ob` (**symétrie inférée**, cf. R12). Source `Kp68Daasc6I @ 01:09:34` (« si la bougie ferme au-dessus de la mèche, ça c'est plus rien »).
+**(a) Persistance à la formation** : l'OB reste valide tant qu'aucune bougie postérieure ne **clôture au-delà de sa mèche** (les bougies qui naissent après doivent rester « enfermées » dans le `[plus haut ; plus bas]` de l'OB). Bull : invalidé si `close > H_ob` ; bear : `close < L_ob`. Source (haussier) `Kp68Daasc6I @ 01:09:34` (« si la bougie ferme au-dessus de la mèche, ça c'est plus rien »). **R12 tranché (2026-06-18) : symétrie bear ADOPTÉE par inférence** (non sourcée ; le canon ne cite que le haussier et a même retiré la borne basse après audit — cohérence avec `bougie_englobante_cloture_canon` bi-directionnel). À retester si une source bear apparaît.
 
 **(b) Entame partielle → consommation, le reste survit** : un retour qui pénètre la zone **consomme une partie** (« tu as pris une certaine quantité… tu as pas tout pris », `xFnFjopAzz8 @ 01:52:14`). On **ré-affine** l'OB sur le reste non consommé :
 - `reste ≥ 0.45 × ATR233` → l'OB **survit** comme zone résiduelle ré-affinée (`@ 01:53:18`).
@@ -171,9 +171,9 @@ Pour des zones concurrentes sur le chemin du prix :
 | R9 | Seuil bas OB : 0.30 « pas d'OB » vs ~0.5 « prendre la bougie dessous » (§T2) | ⚠️ deux seuils voisins sourcés — fallback distinct à clarifier |
 | R10 | « traversé sans réaction » (§T1-bis c) | 🟦 tranché 2026-06-18 : proxy clôture-vs-mèche (mèche = rejet, clôture au-delà = mort) |
 | R11 | Re-tradabilité du reste (§T1-bis d) : gating par double cassage 1-2 | ⚠️ à formaliser (détection vs Phase 2 entrée) |
-| R12 | Symétrie bear de la règle clôture-au-delà-mèche (§T1-bis a) | ⚠️ inférée, non sourcée (seul le haussier est cité) |
+| R12 | Symétrie bear de la règle clôture-au-delà-mèche (§T1-bis a) | 🟦 tranché 2026-06-18 : inférence adoptée (bear actif), non sourcée |
 
-> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R1, R2, R4, R6, R7 (historiques) + R9, R11, R12 (bords flous issus du dig).
+> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R1, R2, R4, R6, R7 (historiques) + R9, R11 (bords flous issus du dig).
 
 ## §5 — Testabilité
 Chaque détecteur reste une fonction pure `(série OHLC, ATR233) → liste de zones {type, side, top, bottom, bar_origine, TF}`. **Exception D2** : l'arbitrage de la zone grise (§T2-bis) introduit une **dépendance multi-TF** — la fonction T2 doit recevoir, pour la zone candidate, le corps mesuré sur TF+1 et TF−1 (ou un accès aux séries voisines). Déterministe ⇒ rejouable barre par barre, vérifiable sur replay TradingView. Les points R1–R12 sont les seuls degrés de liberté ; tout le reste est figé.
