@@ -150,7 +150,11 @@ Les 5 types sont détectés sur **Large / Moyen / Court** (ebook p11). Chaque zo
 - `force_origine` = rang du TF d'origine dans la cascade **demi-paliers** (M1=0 … W1=11), relatif au TF tradé. Chaque « fois de force » = **−2 demi-paliers** (force-energie.md).
 - **Comparaison décisive** : `force_courante < force_zone` → la zone **tient** (rebond) ; `≥` → elle **casse** (`WO1gp3sk5U0 @ 00:26:00` / `@ 00:26:59`).
 - `force_courante` = `swing_tf` + (+2 demi-paliers/cassage, **plafond 2**) − (**÷2** si fausse cassure) − dégradations.
-- **Contre-swing** : conditionne la cascade — absent → rebond au TF courant ; présent (**≥ ~1 cm ≈ 1 ATR**, `WO1gp3sk5U0 @ 00:44:27`) → cascade jusqu'à TF+2 (`@ 00:43:17` / `@ 00:47:55`) ; **absent = −1** (`24tpbSEAXeA @ 01:16:26`) ; cherchable sur un demi-TF inférieur (`@ 00:48:09`). ⚠️ Le vault ne pose PAS « contre-swing = force_courante » (déduction, cf. R13).
+- **Contre-swing** — deux effets distincts (vérifiés à la main dans les transcripts) :
+  - **(portée du mouvement)** absent (descente directe) → portée au **même temps** (`24tpbSEAXeA @ 00:47:55` : « de H2 H2 s'il y a pas de contre-swing ») ; présent (descente en escalier, **≥ ~1 cm ≈ 1 ATR**, `WO1gp3sk5U0 @ 00:44:27`) → portée à **+1 temps (= +2 demi-paliers)**, PAS +2 temps (`24tpbSEAXeA @ 00:48:00` : « … on va jusqu'à H8 »). Le contre-swing est cherchable sur un **demi-TF inférieur** (`24tpbSEAXeA @ 00:48:14`).
+  - **(dégradation)** son **absence = −1** (swing « né de rien », `24tpbSEAXeA @ 01:16:26`).
+  - ⚠️ Le vault ne pose PAS « contre-swing = force_courante » (déduction, cf. R13).
+- **Exemples chiffrés vérifiés** (lecture directe transcripts) : (1) `ufdWzL2kXUY @ 00:06:07-07:55` — D1 −3 fois (zone qui absorbe −1, liquidité-avant-liquidité jeu interne −1, séquence 1-2 visible −1) = **M15**, recoupé bottom-up H4 −2 = M15 ; (2) `WO1gp3sk5U0 @ 00:41:38-42:42` — H8 −3 fois (zone épaisse −2, liquidité au-dessus −1) = **M8**.
 
 **Table des dégradations (vérifiées verbatim) — remplace le compteur non sourcé :**
 
