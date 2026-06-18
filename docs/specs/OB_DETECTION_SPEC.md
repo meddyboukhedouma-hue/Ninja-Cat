@@ -8,6 +8,7 @@
 > **Révision 2026-06-18** (après confrontation vidéo + ebook, cf. mémoire `ob-spec-vs-vault-confrontation`) :
 > - **D1 — §T3 corrigé au canon** : l'englobement S/D passe de « corps-sur-corps » à **mèche comprise** (clôture de l'englobante au-delà de l'extrême-mèche opposé), conforme à `6AyQ-UFocFg @ 00:01:21`.
 > - **D2 — §T2 : la zone grise est tranchée** par une **convention de doctrine humaine** (la vidéo la déclare discrétionnaire — « zone grise », `FFxKFvuYxrM @ 00:11:18`). Cette convention est marquée 🟦 = décision humaine assumée, HORS vault.
+> - **D3 + T4 officialisés** : les seuils 0.30 (borne basse OB §T2 ; corps de base ABA §T4), jusque-là non sourcés/inférés, sont désormais **sourcés** par le dig (`7S_Iovunj20 @ 01:05:17` et `bXSNlOQ-h3c @ 01:38:21`). Correction annexe : base ABA `1 à 5` → **`1 à 3`** bougies (canon `aba.md`).
 
 ---
 
@@ -77,7 +78,7 @@ Bougie à **mèche longue** côté `X` si `X_wick / range ≥ 0.50` (`X` = upper
 ### T2 — OB + Imbalance ✅ / 🟦 (zone grise = décision humaine)
 **Pré-condition** : l'impulsion crée une **FVG valide** (§1.4). Sinon → pas un T2.
 **Bougie de départ** `d` = bougie impulsion du FVG (la `i−1` du triplet). Mesure `body_d` (en ATR233) :
-- `body_d < 0.30` **ou** pas de vrai corps (§1.3) sur les 2–3 dernières → **pas d'OB**.
+- `body_d < 0.30` **ou** pas de vrai corps (§1.3) sur les 2–3 dernières → **pas d'OB**. *(D3 — borne basse 0.30 **sourcée** : « le corps […] fait 0,3 ATR minimum pour constituer un order bloc d'origine. J'ai 0,24. Donc […] pas assez épais → pas d'order bloc », `7S_Iovunj20 @ 01:05:17`. Tension résiduelle : un seuil voisin ~0.5 ATR (« pas même 1 demi-cm » → prendre la bougie dessous, `0OeOoBj-Hb0 @ 00:47:47`) concerne un **fallback distinct**, cf. R9.)*
 - `0.30 ≤ body_d ≤ 0.63` → **OB = la bougie `d`**, tracé = **son corps** `[body_low_d, body_high_d]`.
 - `body_d > 0.65` → impulsion trop violente → **OB = la FVG** (§1.4), tracé = la boîte FVG. *(« première des deux FVG » dans la doctrine — interprété comme la boîte FVG de l'impulsion ; ⚠️ confirmer si « deux FVG » désigne un cas multi-gap.)*
 - `0.63 < body_d ≤ 0.65` → **ZONE GRISE** → arbitrage multi-TF (§T2-bis).
@@ -102,14 +103,13 @@ La doctrine Garry laisse ce choix **discrétionnaire** : « entre les deux c'est
 3. **Type** : `A` bull avalée → **zone d'offre** (vente) ; `A` bear avalée → **zone de demande** (achat).
 4. **Zone** = corps de `A` : `[body_low_A, body_high_A]`.
 
-### T4 — Base d'Accélération (ABA) ✅ / 🔴
+### T4 — Base d'Accélération (ABA) ✅ (T4 officialisé : seuil 0.30 sourcé, source unique)
 **Séquence** : `accél_in → base → accél_out`.
-- **Bougie de base** : `body ≤ 0.30 × ATR233` 🔴 (déduction, non sourcée) **ET** mèche longue des **deux** côtés (`upper_wick/range ≥ 0.50` ET `lower_wick/range ≥ 0.50`).
-- **Base** = 1 à 5 bougies de base consécutives.
-- **Bougie d'accél** : `body > 0.30 × ATR233` (complément du seuil base 🔴).
+- **Bougie de base** : `body ≤ 0.30 × ATR233` ✅ **sourcé** : « pour qu'on considère une ABA, le corps ne doit pas dépasser 0,3 ATR » (`bXSNlOQ-h3c @ 01:38:21`). ⚠️ Réserve : source **unique**, transcription bruitée, contexte TF mensuel → à reconfirmer/calibrer (cf. R5). **ET** mèche longue des **deux** côtés (`upper_wick/range ≥ 0.50` ET `lower_wick/range ≥ 0.50`).
+- **Base** = **1 à 3** bougies de base consécutives (corrigé 5→3 au canon : `aba.md` « 1, 2 ou 3 bougies — au-delà, ce n'est plus une base » ; params `aba_base_bougies_min=1` / `max=3`).
+- **Bougie d'accél** : `body > 0.30 × ATR233` (complément du seuil base, même source).
 - **Validation `accél_out`** (verrouillé) : sa clôture franchit l'extrême de la base — bull : `close > base_high` ; bear : `close < base_low`.
 - **Zone** = `[min(L) de la base, max(H) de la base]`, **mèches incluses**.
-🔴 Le seuil `0.30 ATR233` (corps base/accél) est le **seul non sourcé** — candidat n°1 à calibrer en backtest.
 
 ### T5 — Wick Block 🟡 (à valider sur chart)
 **Algorithme** : 1 à 2 bougies à mèche longue (§1.7) côté du rejet.
@@ -146,12 +146,13 @@ Pour des zones concurrentes sur le chemin du prix :
 | R2 | BoS externe vs interne pour l'impulsion (§1.5) | ⚠️ défaut = dernier pivot 2/2 |
 | R3 | Mitigation T1 : clôture vs mèche, et bord (§T1) | ⚠️ défaut = clôture au-delà du bord lointain |
 | R4 | T2 « première des deux FVG » : cas multi-gap ? (§T2) | ⚠️ interprété = boîte FVG de l'impulsion |
-| R5 | T4 corps base/accél `≤/>` 0.30 ATR233 (§T4) | 🔴 non sourcé, à calibrer |
+| R5 | T4 corps base/accél `≤/>` 0.30 ATR233 (§T4) | ✅ sourcé `bXSNlOQ-h3c @ 01:38:21` — source unique/bruitée, reconfirmer/calibrer |
 | R6 | T5 tracé du gap (§T5) | 🟡 à valider visuellement |
 | R7 | « −1 par jeu interne » : définition opérationnelle du « jeu » (§3.2) | ⚠️ attestation, à préciser |
 | R8 | Zone grise (§T2-bis) : voisin TF+1/TF−1 indisponible | 🟦 tranché 2026-06-18 : voisin manquant = « non-proche » |
+| R9 | Seuil bas OB : 0.30 « pas d'OB » vs ~0.5 « prendre la bougie dessous » (§T2) | ⚠️ deux seuils voisins sourcés — fallback distinct à clarifier |
 
-> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a aussi sourcé R5 (corps base ABA ≤ 0.3 ATR, `bXSNlOQ-h3c @ 01:38:21`, source unique/bruitée) et éclairé R3 (mitigation T1 = clôture **au-delà de la mèche**, `ob_invalide_si_bougie_ferme_au_dessus_meche`). Non répercutés ici (hors périmètre D1/D2) — à traiter dans une passe dédiée.
+> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a éclairé R3 (mitigation T1 = clôture **au-delà de la mèche**, `ob_invalide_si_bougie_ferme_au_dessus_meche`), **non encore répercuté** ici — à traiter dans une passe dédiée. D3 et T4 ont été **officialisés** dans cette révision (sourcés ci-dessus).
 
 ## §5 — Testabilité
-Chaque détecteur reste une fonction pure `(série OHLC, ATR233) → liste de zones {type, side, top, bottom, bar_origine, TF}`. **Exception D2** : l'arbitrage de la zone grise (§T2-bis) introduit une **dépendance multi-TF** — la fonction T2 doit recevoir, pour la zone candidate, le corps mesuré sur TF+1 et TF−1 (ou un accès aux séries voisines). Déterministe ⇒ rejouable barre par barre, vérifiable sur replay TradingView. Les points R1–R8 sont les seuls degrés de liberté ; tout le reste est figé.
+Chaque détecteur reste une fonction pure `(série OHLC, ATR233) → liste de zones {type, side, top, bottom, bar_origine, TF}`. **Exception D2** : l'arbitrage de la zone grise (§T2-bis) introduit une **dépendance multi-TF** — la fonction T2 doit recevoir, pour la zone candidate, le corps mesuré sur TF+1 et TF−1 (ou un accès aux séries voisines). Déterministe ⇒ rejouable barre par barre, vérifiable sur replay TradingView. Les points R1–R9 sont les seuls degrés de liberté ; tout le reste est figé.
