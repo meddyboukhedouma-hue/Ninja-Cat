@@ -37,10 +37,10 @@
 ### 1.2 Pivots 2/2 ✅
 `pivot_high = ta.pivothigh(high, 2, 2)` · `pivot_low = ta.pivotlow(low, 2, 2)`. Confirmés 2 barres après. Source : Pine v19 (attestation).
 
-### 1.3 « Vrai corps » / filtre noise ⚠️
-Constante `noise = 0.5` déclarée (Pine v19) mais **son rôle exact n'est pas dans mes sources**.
-**Hypothèse de travail** : une bougie a un « vrai corps » si `body ≥ noise × range` (corps ≥ 50 % de la barre). Utilisée uniquement comme garde-fou « pas de vrai corps » de T2.
-→ **À confirmer** : est-ce bien ça que fait `noise` dans la v19 ?
+### 1.3 Filtre « bruit » / vrai corps ✅ (R1 tranché 2026-06-18)
+L'ancienne hypothèse « vrai corps = `body ≥ 0.5 × range` » était **NON sourcée** (mauvaise lecture de la constante Pine `noise=0.5`). Le canon donne **deux** critères sourcés, distincts :
+- **Bruit (canon, immuable)** : une bougie dont l'**amplitude `range < 0.5 × ATR233`** est du **bruit, à ignorer** (`atr#atr_bruit_threshold`, `lxSpGEk1Ec4 @ 00:01:43` : « Moins de 0,5 ATR, ce sera que du bruit »). C'est ce à quoi correspond `noise=0.5` du Pine — un **seuil d'amplitude**, pas un ratio corps/range.
+- **« Corps exploitable » (garde-fou T2 « FVG vide »)** : qualitatif chez Garry (`FQO8F7WmlGY @ 00:04:09` : « le corps est vraiment petit […] aucun corps exploitable → la FVG est vide → pas d'OB »), opérationnalisé via le plancher de corps OB **`corps < 0.30 ATR233`** (§T2 / D3) : si les 2–3 dernières bougies n'ont aucun corps ≥ 0.30 ATR → FVG vide → pas d'OB.
 
 ### 1.4 FVG (Fair Value Gap, 3 bougies) ✅
 Sur le triplet `(i−2, i−1, i)`, la bougie `i−1` est l'impulsion, `i−2`/`i` l'encadrent :
@@ -187,7 +187,7 @@ Pour des zones concurrentes sur le chemin du prix :
 
 | # | Point | Statut |
 |---|---|---|
-| R1 | Rôle exact de `noise = 0.5` (§1.3) | ⚠️ hypothèse `body ≥ 0.5×range` |
+| R1 | `noise = 0.5` / vrai corps (§1.3) | 🟦 tranché 2026-06-18 : hypothèse `body≥0.5×range` NON sourcée ; canon = bruit si `range < 0.5 ATR` (`lxSpGEk1Ec4@00:01:43`) + corps exploitable via plancher 0.30 ATR |
 | R2 | BoS externe vs interne pour l'impulsion (§1.5) | 🟦 tranché 2026-06-18 : BoS EXTERNE requis, sur corps (`jevVat55Svg@00:28:27`) ; interne ne valide pas |
 | R3 | Cycle de vie OB (mitigation/mort) | 🟦 résolu 2026-06-18 — modèle du « reste » (§T1-bis) |
 | R4 | T2 « première des deux FVG » multi-gap (§T2) | 🟦 tranché 2026-06-18 : FVG la plus profonde dans le sens du swing (`be0adcdA7lw@01:05:08`), fusion assumée |
@@ -201,7 +201,7 @@ Pour des zones concurrentes sur le chemin du prix :
 | R12 | Symétrie bear de la règle clôture-au-delà-mèche (§T1-bis a) | 🟦 tranché 2026-06-18 : inférence adoptée (bear actif), non sourcée |
 | R13 | Modèle de force — points ouverts (§3.2). **Arithmétique RÉSOLUE par lecture directe 2026-06-18** : 1 fois = 1 temps = 2 demi-paliers, échelle D1·H4·H1·M15 (`6eL9OUdSc94@00:43:18`, Garry rejette les demi-temps) — les « contradictions » précédentes (H4−1=M15, deux échelles, D1−2 vs −3) étaient des passages garbled / lapsus oraux de Garry / miscounts d'agent, PAS deux doctrines. Restent ouverts : (a) seuils ATR épaisseur (2 vidéos divergent) ; (b) seuil contre-swing ≥1 cm vs ≥ moitié du swing ; (c) « premier POI » sans timestamp Garry ; (d) contre-swing↔force_courante (déduction) ; (e) zone-avant-OB −1 brut code vs −1 temps vault | ⚠️ DÉFÉRÉ au sous-système `force-energie.md` / `cartographie.py` |
 
-> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R1, R6 (historiques) + R11 (bord flou issu du dig) + R13 (modèle de force, déféré au sous-système).
+> Note : le dig 2026-06-18 (cf. mémoire `ob-spec-vs-vault-confrontation`) a officialisé D1, D2, D3, T4, **R3** (cycle de vie OB, §T1-bis) et **R10** (clôture-vs-mèche). Restent ouverts : R6 (historique) + R11 (bord flou issu du dig) + R13 (modèle de force, déféré au sous-système).
 
 ## §5 — Testabilité
 Chaque détecteur reste une fonction pure `(série OHLC, ATR233) → liste de zones {type, side, top, bottom, bar_origine, TF}`. **Exception D2** : l'arbitrage de la zone grise (§T2-bis) introduit une **dépendance multi-TF** — la fonction T2 doit recevoir, pour la zone candidate, le corps mesuré sur TF+1 et TF−1 (ou un accès aux séries voisines). Déterministe ⇒ rejouable barre par barre, vérifiable sur replay TradingView. Les points R1–R13 sont les seuls degrés de liberté ; tout le reste est figé.
