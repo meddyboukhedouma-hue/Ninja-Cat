@@ -13,6 +13,8 @@
 > - **R10 tranché — « sans réaction » = clôture vs mèche (§T1-bis c)** : seule une **clôture** au-delà du bord lointain consomme/tue l'OB ; une **mèche** qui dépasse mais clôture revenue dans la zone = rejet = la zone tient. Canon « la clôture prime ».
 >
 > **Révision 2026-06-18/19 (suite)** : **R1·R2·R4·R5·R6·R7·R9·R11·R12·R13** également tranchés/résolus côté doctrine. Confrontation au canon **bouclée** — voir le **registre §4** pour l'état complet. Ne restent NON-doctrinaux : R6 (géométrie fine du gap → visuel TV), inférences à valider (morphologie base §T4), câblage force (`cartographie.py`).
+>
+> **Révision 2026-06-19 (grille de localisation)** : ajout **§2.5** — localisation de l'OB d'origine dans la séquence (« **intérieur → 1ᵉʳ micro-swing ; extérieur → 1ᵉʳ gros swing ; même TF imbriqué → liquidité** ; jamais de liquidité au-dessus »), **sourcée et vérifiée transcript + visuel** à `NOAGAfn5VhQ @ 02:56:38–03:02:16`. **Corrige un timestamp vault erroné** (`grille_ob_origine` citait 05:15, faux). Registre §4 : **R14**.
 
 ---
 
@@ -140,6 +142,39 @@ La doctrine Garry laisse ce choix **discrétionnaire** : « entre les deux c'est
 
 ---
 
+## §2.5 — Localisation de l'OB d'origine dans la séquence (grille « intérieur / extérieur ») ✅ (résolu 2026-06-19 — transcript + visuel vérifiés)
+
+> Les §2 (T1–T5) donnent la **forme** de l'OB ; cette section dit, **une séquence donnée** (les **2 dernières cassures consécutives MÊME SENS**, cf. `SWING_SEQUENCE_SPEC §3`), **lequel des candidats EST l'OB d'origine**.
+
+**⚠️ Correction de sourcing (2026-06-19)** : l'axiome vault `grille_ob_origine` citait `NOAGAfn5VhQ @ 05:15:47` — **timestamp ERRONÉ** (à 05:15 Garry fait une analyse live, pas la grille). Le **vrai** passage est **`NOAGAfn5VhQ @ 02:56:38–03:02:16`**, vérifié **verbatim au transcript + au visuel** (schéma « prenez la photo », `@ 03:01:24` ; frames extraites `tmp_noag/p_08.png`, quadrants `zoom_tl` intérieur / `zoom_tr` extérieur).
+
+**Référence de lecture** : la séquence se lit sur **les 2 derniers swings**, référence = **le 1ᵉʳ des deux** (`sequence_mesuree_par_premier_swing`, `cZuWS5kuXqg @ 02:17:25`).
+
+**Règle déterministe — « une affaire de polarité » TF-1 / TF0** (`@ 03:02:00`). On classe les **micro-swings** (swings vus sur le **TF inférieur**, « TF-1 ») par rapport au **swing principal** (« TF0 ») :
+
+| Configuration des micro-swings | OB d'origine | Source (NOAGAfn5VhQ, vérifiée) |
+|---|---|---|
+| **À L'INTÉRIEUR** du swing principal | **le 1ᵉʳ des micro-swings** (dedans) | `@ 03:01:08`, `@ 02:59:39` |
+| **À L'EXTÉRIEUR** | micro-swings = **liquidité** → **le 1ᵉʳ des gros swings** (TF0) | `@ 03:01:11`, `@ 02:58:11` |
+| **swing dans un swing de MÊME taille (même TF)** | **liquidité** → pas d'OB ici, **chercher plus loin** | `@ 02:56:38`, `@ 02:57:39` |
+
+- **Condition impérative (tous cas)** : **pas de liquidité au-dessus** de l'OB, sinon ce n'est pas l'OB (`@ 03:00:09`, `@ 03:01:15`).
+- **Pré-condition « extérieur »** : il faut **avoir cassé** le swing pour qu'un autre gros swing derrière « reçoive » l'OB (`@ 03:00:30`).
+- **Exemple chiffré canon** : « un swing de **H1** suivi d'un swing de **M30** → ce **M30** est l'OB du H1 » (`@ 02:59:58`).
+
+**Correspondance avec la grille A→F** (`order-block#grille_ob_origine`) :
+- **Config 1** (classique : 2 swings même TF, sans imbrication) → **base du 1ᵉʳ swing** (cas par défaut, le + fréquent ; `choch_ancre_zone_origine_swing_avant`).
+- **Config 2** (intermédiaires petit TF **dehors**) = **extérieur** → origine du grand swing.
+- **Config 3** (intermédiaires petit TF **dedans**) = **intérieur** → 1ᵉʳ micro-swing.
+- **Config 6** (swing dans swing même TF) → **liquidité**.
+- **Config 4** (énergie inversée → OB d'origine seul) et **Config 5** (contre-structure → « OB du milieu ») : **non couvertes** par ce passage → ⚠️ sourcées ailleurs (CHoCH / quiz `2 1 1 1 2`), à confirmer séparément.
+
+**Choix parmi plusieurs OB candidats** : compositions **identiques → prendre le 1ᵉʳ**, **différentes → prendre le dernier** (`2smFe9uHC38 @ 01:12:18`) ; sinon le **plus profond / non tapé** (`WO1gp3sk5U0 @ 02:16:24`) ; **ne trader que les OB d'origine** (`MXaZC0yd02Q @ 01:15:17`).
+
+**Frontières** : la **forme/hauteur** de l'OB une fois localisé = §2 (T1–T5) + §T1-bis (mèche comprise). Le **contre-swing n'intervient PAS** dans la localisation (cf. §3.2 / R13(d)) — il qualifie la **force**.
+
+---
+
 ## §3 — Arbitrage multi-TF (qui gagne)
 
 ### 3.1 Détection multi-TF ✅
@@ -202,6 +237,7 @@ Pour des zones concurrentes sur le chemin du prix :
 | R11 | Re-tradabilité du reste (§T1-bis d) | 🟦 tranché 2026-06-18 : détection suit l'état (machine à états : double cassage 1-2 + reste ≥0,45 → re-légitimé) ; acte d'entrée = Phase 2 |
 | R12 | Symétrie bear de la règle clôture-au-delà-mèche (§T1-bis a) | 🟦 tranché 2026-06-18 : inférence adoptée (bear actif), non sourcée |
 | R13 | Modèle de force — points ouverts (§3.2). **Arithmétique RÉSOLUE 2026-06-18** : 1 fois = 1 temps = 2 demi-paliers, échelle D1·H4·H1·M15 (`6eL9OUdSc94@00:43:18`). **Creusé 2026-06-19 (lecture directe)** : (c) RÉSOLU — à force égale = **NO-TRADE** (`HvbI6rA95tk@03:27:00` « +3 contre +3, on ne sait pas où va le marché ») → pas de règle de gagnant nécessaire, « premier POI » sans objet ; (e) RÉSOLU — zone-avant-OB « −1 temps » = code « −1 fois » = −2 demi-paliers (artefact d'unité). **(a) RÉSOLU 2026-06-19 via zones S/D** : la catégorie canon **« FINE » = `< 0,75 ATR`** (« rien dedans » → zone invalide ; `supply-demand#zone_epaisseur_min`, `FQO8F7WmlGY@00:05:57` + `29bGrivmwTM@01:51:09` + `6z7KNx5TC1Y@02:27:50`) ancre l'échelle d'épaisseur des zones S/D : **fine `<0,75` | normale `0,75–1,65` | épaisse `1,65–2,7` | très épaisse `≥2,7`** (plancher 0,75 ferme S/D ; paliers hauts = `WO1gp3sk5U0@00:22:22` détaillé ; le « 1,5 » de `24tpbSEAXeA` = cadrage grossier « en moyenne »). **(b) RÉSOLU 2026-06-19 via le swing** : `swing.md#contre_swing_present` unifie déjà — contre-swing = swing valide **1 à 1,5 temps inférieur** au swing principal. Or 1 temps inférieur = ÷2 volatilité (`WO1gp3sk5U0@00:23:58`) = **moitié du swing** (`rwRNzxzzr10@00:08:55`) ; 1,5 temps inférieur ≈ ~1 ATR ≈ **1 cm** (`WO1gp3sk5U0@00:44:27`). Les deux seuils = les **deux bornes** d'un même intervalle, pas deux doctrines. **(d) CLARIFIÉ 2026-06-19** : « contre-swing = force_courante » était une **mauvaise formulation**. Canon : `force_courante` = force du swing qui **ARRIVE / « vient taper »** la zone (`xFnFjopAzz8@00:10:31`), construite via la cascade (swing_tf + cassages) ; le contre-swing en est le **CONSTRUCTEUR** via l'escalier (sans → portée même temps `@00:36:26` ; avec → +1 temps). Relation **builder→résultat, pas identité** — pas de trou. | ✅ **R13 RÉSOLU côté doctrine** (a–e) ; ne reste que le **CÂBLAGE** dans `cartographie.py` (engineering, pas doctrine) |
+| R14 | Localisation de l'OB d'origine dans la séquence (§2.5) | ✅ résolu 2026-06-19 : grille « **intérieur → 1ᵉʳ micro-swing / extérieur → 1ᵉʳ gros swing / même TF imbriqué → liquidité** » (`NOAGAfn5VhQ@02:56–03:02`, transcript + visuel « prenez la photo »). **Corrige le timestamp vault erroné `grille_ob_origine`@05:15.** Configs 1/2/3/6 déterministes ; 4/5 (énergie inversée / OB du milieu) ⚠️ à confirmer |
 
 > Note : confrontation au canon **BOUCLÉE** (2026-06-18/19, cf. mémoire `ob-spec-vs-vault-confrontation`). **D1·D2·D3 et R1–R13 tous tranchés/résolus côté doctrine** — chaque décision sourcée + vérifiée à la main au transcript. Ne restent, tous **NON-doctrinaux** : **R6** (géométrie fine du gap → validation visuelle TV) ; **inférences à valider** (formule morphologie base §T4 `body<mèche`) ; **câblage** du modèle de force dans `cartographie.py` (engineering). Tout 🟡/⚠️ résiduel relève de l'un de ces trois.
 
