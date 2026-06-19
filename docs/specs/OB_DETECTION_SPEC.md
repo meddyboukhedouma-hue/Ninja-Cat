@@ -15,6 +15,8 @@
 > **Révision 2026-06-18/19 (suite)** : **R1·R2·R4·R5·R6·R7·R9·R11·R12·R13** également tranchés/résolus côté doctrine. Confrontation au canon **bouclée** — voir le **registre §4** pour l'état complet. Ne restent NON-doctrinaux : R6 (géométrie fine du gap → visuel TV), inférences à valider (morphologie base §T4), câblage force (`cartographie.py`).
 >
 > **Révision 2026-06-19 (grille de localisation)** : ajout **§2.5** — localisation de l'OB d'origine dans la séquence (« **intérieur → 1ᵉʳ micro-swing ; extérieur → 1ᵉʳ gros swing ; même TF imbriqué → liquidité** ; jamais de liquidité au-dessus »), **sourcée et vérifiée transcript + visuel** à `NOAGAfn5VhQ @ 02:56:38–03:02:16`. **Corrige un timestamp vault erroné** (`grille_ob_origine` citait 05:15, faux). Registre §4 : **R14**.
+>
+> **Révision 2026-06-19 (cascade de recherche)** : ajout **§2.6** — la **cascade de recherche de la zone** (FVG → Zone → ABA par descente demi-TF, 1ʳᵉ valide ; force `FVG@T0 ≡ Zone@T−½ ≡ ABA@T−1`), **résolue sur transcripts bruts** (`24tpbSEAXeA @ 00:58:11`). **Dissout la fausse contradiction zone↔ABA** (axes RECHERCHE vs FORCE) et **corrige le principe §2** (corps-first, pas FVG-first ; « OB classique » = résultat, pas 4ᵉ type). **Cascade MULTI-TF.** Registre §4 : **R15**.
 
 ---
 
@@ -69,8 +71,9 @@ Bougie à **mèche longue côté `X`** (`X` = upper ou lower) ssi **`X_wick > bo
 
 ## §2 — Les 5 détecteurs
 
-### Principe architectural (transcription) ✅ — UNE zone par impulsion
-« Tu pars du mouvement → tu remontes à la source → tu CHOISIS la bonne zone. » Donc par impulsion on sélectionne **un seul** type (T1/T2/T3/T4/T5), jamais plusieurs en parallèle. Concrètement : **FVG présente → T2 décide (corps ou FVG), T1 éteint** ; BoS sans FVG → T1.
+### Principe architectural ✅ — UNE zone par impulsion (cascade §2.6)
+Par impulsion, l'OB est **UNE** zone : le **RÉSULTAT** cherché, réalisé **indifféremment** en FVG / Zone S/D / ABA — **PAS** 5 types concurrents en parallèle. On la trouve par la **cascade de recherche §2.6** (descente demi-TF : **FVG → Zone → ABA**, 1ʳᵉ figure valide). Les détecteurs T1–T5 ci-dessous donnent la **FORME/tracé** de la figure trouvée à chaque étage.
+⚠️ **Correction 2026-06-19** : l'ancien aiguillage « FVG présente → T2, sinon T1 » était **inversé**. Le canon part du **corps** au temps 0 (0,30–0,63 → OB-corps ; >0,65 → FVG ; sinon descendre) — cf. §2.6, résolu sur transcripts bruts.
 
 ### T1 — OB Classique ✅ (tracé : défaut Pine)
 **Déclencheur** : une jambe impulsive (§1.6) part d'un pivot 2/2.
@@ -175,6 +178,33 @@ La doctrine Garry laisse ce choix **discrétionnaire** : « entre les deux c'est
 
 ---
 
+## §2.6 — Cascade de recherche de la zone (FVG → Zone → ABA, descente demi-TF) ✅ (résolu 2026-06-19 — transcripts bruts)
+
+> **Comment trouver LA zone** d'une impulsion. Le canon est une **cascade déterministe** (« tout doit être très très codifié », « c'est mathématique » — Garry), pas un menu parallèle. Résout l'apparente contradiction zone↔ABA = **deux axes confondus** (RECHERCHE vs FORCE).
+> Sources brutes : `24tpbSEAXeA @ 00:58:11–00:59:36` (protocole complet), `qCAdx5LIcL0 @ 00:11:37`, `8QoYIWwOF_I @ 00:51:55 / 03:35:53`, `MXaZC0yd02Q @ 00:58:29`, `v0uou9miWnQ @ 00:34:18`.
+
+**Règle** : on lit le swing **sur 3 temps**, on **descend d'un demi-TF à chaque échec**, on **s'arrête à la 1ʳᵉ figure valide** :
+
+| Étape | TF | Figure | Critère |
+|---|---|---|---|
+| 1 | **Temps 0** | **FVG / corps** | corps **0,30–0,63 → OB-corps** ; **> 0,65 → 1ʳᵉ FVG** ; < 0,30 / pas de gap → descendre (cf. §T2, `FQO8F7WmlGY @ 00:03:03`) |
+| 2 | **−½ temps** | **Zone S/D** | épaisseur **≥ 0,75 ATR** (§T3, `FQO8F7WmlGY @ 00:05:57`) |
+| 3 | **−1 temps** | **ABA** | base 1-3 bougies petit corps + longues mèches (§T4) |
+
+**Équivalence de force (la clé qui dissout la « contradiction »)** : `FVG@T0 ≡ Zone@T−½ ≡ ABA@T−1` (`24tpbSEAXeA @ 00:59:19` : « c'est mathématique »). La hiérarchie de FORCE **ABA > Zone > FVG** (`v0uou9miWnQ @ 00:34:18`) = la **RAISON** du décalage demi-TF (axe FORCE), **PAS** un ordre de recherche concurrent. La « séquence de recherche » et la « hiérarchie de force » sont **deux faces d'une même règle**.
+
+**Reframing canon** : **« OB classique » n'est PAS un 4ᵉ type concurrent** — l'order block est le **RÉSULTAT** cherché, réalisé en FVG / Zone / ABA. Les §2 (T1–T5) donnent la **forme**, la cascade dit **laquelle** est l'OB.
+
+**Distinction-piège** : « interchangeable » au canon = **affinage intra-OB** (`sgt1ok5yaTs @ 00:05:52`), **PAS** la recherche.
+
+**Ordre canon global** : déclencheur **5 barres** en amont (cassage de swing ; OB d'origine « 3 temps et demi dessous », `YrilriDpIm8 @ 01:37:37`) → **localiser** (grille §2.5) → **cascade §2.6** (quelle figure) → **forme** (§2 T1–T5) → **arbitrage force** (§3).
+
+⚠️ **MULTI-TF intrinsèque** : la descente demi-TF exige un accès aux TF inférieurs. Un détecteur **single-TF ne couvre que l'étape 1** (temps 0).
+
+🟦 **Non tranché par le vault (2 décisions humaines, marquées)** : (a) arbitrage si **2 figures équivalentes coexistent** au même étage (Garry : « je prendrai la première », sans règle générale) ; (b) traiter « OB classique » comme type distinct ou comme résultat générique.
+
+---
+
 ## §3 — Arbitrage multi-TF (qui gagne)
 
 ### 3.1 Détection multi-TF ✅
@@ -238,6 +268,7 @@ Pour des zones concurrentes sur le chemin du prix :
 | R12 | Symétrie bear de la règle clôture-au-delà-mèche (§T1-bis a) | 🟦 tranché 2026-06-18 : inférence adoptée (bear actif), non sourcée |
 | R13 | Modèle de force — points ouverts (§3.2). **Arithmétique RÉSOLUE 2026-06-18** : 1 fois = 1 temps = 2 demi-paliers, échelle D1·H4·H1·M15 (`6eL9OUdSc94@00:43:18`). **Creusé 2026-06-19 (lecture directe)** : (c) RÉSOLU — à force égale = **NO-TRADE** (`HvbI6rA95tk@03:27:00` « +3 contre +3, on ne sait pas où va le marché ») → pas de règle de gagnant nécessaire, « premier POI » sans objet ; (e) RÉSOLU — zone-avant-OB « −1 temps » = code « −1 fois » = −2 demi-paliers (artefact d'unité). **(a) RÉSOLU 2026-06-19 via zones S/D** : la catégorie canon **« FINE » = `< 0,75 ATR`** (« rien dedans » → zone invalide ; `supply-demand#zone_epaisseur_min`, `FQO8F7WmlGY@00:05:57` + `29bGrivmwTM@01:51:09` + `6z7KNx5TC1Y@02:27:50`) ancre l'échelle d'épaisseur des zones S/D : **fine `<0,75` | normale `0,75–1,65` | épaisse `1,65–2,7` | très épaisse `≥2,7`** (plancher 0,75 ferme S/D ; paliers hauts = `WO1gp3sk5U0@00:22:22` détaillé ; le « 1,5 » de `24tpbSEAXeA` = cadrage grossier « en moyenne »). **(b) RÉSOLU 2026-06-19 via le swing** : `swing.md#contre_swing_present` unifie déjà — contre-swing = swing valide **1 à 1,5 temps inférieur** au swing principal. Or 1 temps inférieur = ÷2 volatilité (`WO1gp3sk5U0@00:23:58`) = **moitié du swing** (`rwRNzxzzr10@00:08:55`) ; 1,5 temps inférieur ≈ ~1 ATR ≈ **1 cm** (`WO1gp3sk5U0@00:44:27`). Les deux seuils = les **deux bornes** d'un même intervalle, pas deux doctrines. **(d) CLARIFIÉ 2026-06-19** : « contre-swing = force_courante » était une **mauvaise formulation**. Canon : `force_courante` = force du swing qui **ARRIVE / « vient taper »** la zone (`xFnFjopAzz8@00:10:31`), construite via la cascade (swing_tf + cassages) ; le contre-swing en est le **CONSTRUCTEUR** via l'escalier (sans → portée même temps `@00:36:26` ; avec → +1 temps). Relation **builder→résultat, pas identité** — pas de trou. | ✅ **R13 RÉSOLU côté doctrine** (a–e) ; ne reste que le **CÂBLAGE** dans `cartographie.py` (engineering, pas doctrine) |
 | R14 | Localisation de l'OB d'origine dans la séquence (§2.5) | ✅ résolu 2026-06-19 : grille « **intérieur → 1ᵉʳ micro-swing / extérieur → 1ᵉʳ gros swing / même TF imbriqué → liquidité** » (`NOAGAfn5VhQ@02:56–03:02`, transcript + visuel « prenez la photo »). **Corrige le timestamp vault erroné `grille_ob_origine`@05:15.** Configs 1/2/3/6 déterministes ; 4/5 (énergie inversée / OB du milieu) ⚠️ à confirmer |
+| R15 | Cascade de recherche de la zone — ordre/priorité (§2.6) | ✅ résolu 2026-06-19 (transcripts bruts) : cascade **FVG → Zone S/D → ABA** par descente demi-TF, 1ʳᵉ figure valide ; force `FVG@T0 ≡ Zone@T−½ ≡ ABA@T−1`. La « contradiction » zone↔ABA = **artefact** (axes RECHERCHE vs FORCE confondus). « OB classique » = **résultat**, pas 4ᵉ type. **Cascade MULTI-TF**. Restent 🟦 : tie-break si figures équivalentes coexistent + statut « OB classique » type vs résultat |
 
 > Note : confrontation au canon **BOUCLÉE** (2026-06-18/19, cf. mémoire `ob-spec-vs-vault-confrontation`). **D1·D2·D3 et R1–R13 tous tranchés/résolus côté doctrine** — chaque décision sourcée + vérifiée à la main au transcript. Ne restent, tous **NON-doctrinaux** : **R6** (géométrie fine du gap → validation visuelle TV) ; **inférences à valider** (formule morphologie base §T4 `body<mèche`) ; **câblage** du modèle de force dans `cartographie.py` (engineering). Tout 🟡/⚠️ résiduel relève de l'un de ces trois.
 
