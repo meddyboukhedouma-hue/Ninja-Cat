@@ -5,6 +5,8 @@
 > Source de vérité : canon Garry distillé dans `ressources/data-wiki/concepts/{swing,pattern-1-2,cassage-de-structure}.md` ; citations **vérifiées à la main** dans les transcripts bruts.
 > Légende : ✅ déterministe & sourcé · 🟦 décision/convention humaine assumée · ⚠️ hypothèse/inférence à confirmer · 🟡 à valider visuellement.
 > **Aucune règle inventée** : tout pointe vers une source ou est marqué comme inférence explicite.
+>
+> **Révision 2026-06-19** : ajout **§0.5** — le **point de départ = le BIAIS** (2 cassures consécutives même sens, top-down, lecture **depuis la fin**) ; **anti-pattern** explicite : on ne part PAS d'un swing 3 ATR isolé (bug racine `cartographie.py`). §3.2 précisé (depuis la fin + filtre ≥ 3 ATR). §4.2 : la **localisation** de l'OB pointe vers **`OB_DETECTION_SPEC §2.5`** (grille intérieur/extérieur, `NOAGAfn5VhQ@02:56-03:02`).
 
 ---
 
@@ -12,6 +14,16 @@
 
 - **`ATR233`**, **conventions par bougie** (`O,H,L,C,body,range,upper_wick,lower_wick`, bull/bear) : cf. `OB_DETECTION_SPEC §0/§1.1`.
 - **Pivots 2/2** : `pivot_high = ta.pivothigh(high,2,2)` ; `pivot_low = ta.pivotlow(low,2,2)`, confirmés **2 barres après** (cf. OB §1.2). Un pivot « confirmé » a donc 2 barres de retard — toute jambe non close entre 2 pivots confirmés est **en cours** (exclue, cf. §1).
+
+---
+
+## §0.5 — Point de départ de l'analyse : le BIAIS ✅ (résolu 2026-06-19)
+
+Le point de départ canon **n'est PAS** de mesurer un swing isolé en 3 ATR (anti-pattern = **bug racine de `cartographie.py`**). Garry commence **TOUJOURS** par **« analyser le biais »** (`SWIXd3b3mCg @ 00:24:31` : « déjà, on va analyser le biais, comme on fait tout le temps »), c.-à-d. la **tendance**, établie par **2 cassures de structure consécutives MÊME SENS** (`tendance_deux_cassures_meme_sens`, ebook G-ON p.5 « IDENTIFY THE TREND »).
+
+- **Top-down** : le biais se lit d'abord sur le **TF supérieur** (Semaine / Journée / H4), puis on descend vers les TF d'exécution (`SWIXd3b3mCg @ 00:31:47`). *(Dépendance multi-TF, cf. S1.)*
+- **Lecture depuis la FIN du tracé** (présent → passé) : on part de la **dernière** cassure et on isole **les 2 dernières cassures consécutives même sens** = la séquence active (§3.2). 🟦 **Décision 2026-06-19** : le vault **ne nomme pas** le sens de lecture gauche↔droite ; cette convention « depuis la fin » est **assumée**, cohérente avec « séquence active = les 2 derniers swings » (§3.2).
+- Le swing/3 ATR, le CHoCH, la zone d'origine sont **EN AVAL** du biais — des **outils** de mesure, **jamais** le point de départ.
 
 ---
 
@@ -67,8 +79,10 @@ Casser un **swing interne** (creux local) **ne valide pas** un retournement de s
 > « **Toujours un jeu de deux swings.** Pourquoi ? parce que le premier swing, c'est souvent le comportement des gros joueurs » (`toujours_jeu_de_deux_swings`, `MPnzEcwA25U @ 00:17:10`).
 Mécanique causale : un gros joueur impulse **2 vagues successives** (parfois 3, rare) (`jQ1dw2zgUek @ 00:16:43`).
 
-### 3.2 Séquence active = les 2 derniers swings consécutifs **même direction**
-`sequence_active` = **fenêtre glissante** sur les 2 derniers swings consécutifs de même direction (PAS un scan global) (`sequence_active_plus_petit_pattern_1_2`, `WO1gp3sk5U0 @ 00:12:42` : « On était sur une séquence en M30 puis en M15 […] on regarde le marché M15 M15 »).
+### 3.2 Séquence active = les 2 dernières cassures consécutives **MÊME SENS** (lues depuis la fin)
+`sequence_active` = **fenêtre glissante** sur les 2 derniers swings/cassures consécutifs de **même direction** (PAS un scan global) (`sequence_active_plus_petit_pattern_1_2`, `WO1gp3sk5U0 @ 00:12:42` : « On était sur une séquence en M30 puis en M15 […] on regarde le marché M15 M15 »).
+- **Lecture depuis la FIN** (§0.5) : on part de la **dernière** cassure et on remonte ; on retient **les 2 dernières cassures consécutives même sens**.
+- **Filtre de validité** : seuls comptent les swings **≥ 3 ATR233** (§1.3) ; les micro-swings `< 3 ATR` sont **ignorés** (§3.5) — « casser un micro swing n'est PAS le début d'une séquence » (`rwRNzxzzr10 @ 00:16:24`).
 
 ### 3.3 TF de trade = le PLUS PETIT des 2 swings
 `pattern_1_2_tf = min(swing_a.tf, swing_b.tf)` (`regle_1_2_tf_de_trade`, `SmJFcCi8cHA @ 00:38:06` : « on prend toujours le plus petit des deux swings »).
@@ -97,7 +111,10 @@ Une séquence canon valide est **l'une** de ces structures équivalentes (`seque
 > « **On regarde toujours par rapport au premier des swings** » (`sequence_mesuree_par_premier_swing`, `cZuWS5kuXqg @ 02:17:25`).
 
 ### 4.2 La zone = l'OB d'origine de la séquence
-La **zone d'origine** de la séquence détectée = l'**OB d'origine** (la racine du mouvement). Sa détection (les 5 types : OB classique, OB+imbalance, S/D, ABA, wick block) + son tracé + son cycle de vie = **`OB_DETECTION_SPEC.md`**. Cette spec-ci **fournit la séquence** (les cassages, le TF, le biais) ; la spec OB **détecte la zone** à son origine.
+La **zone d'origine** de la séquence détectée = l'**OB d'origine** (la racine du mouvement). Répartition des responsabilités :
+- **Cette spec** fournit la **séquence** (les 2 cassures même sens, le TF, le biais, le `bar_origine`).
+- **`OB_DETECTION_SPEC §2.5`** — **LOCALISE** *lequel* des candidats est l'OB d'origine (grille **intérieur → 1ᵉʳ micro-swing / extérieur → 1ᵉʳ gros swing / même TF imbriqué → liquidité**, sourcée `NOAGAfn5VhQ@02:56-03:02`). Référence = **le 1ᵉʳ des 2 swings** (§4.1).
+- **`OB_DETECTION_SPEC §2` (5 types) + §T1-bis** — donnent la **forme / tracé / cycle de vie** de la zone une fois localisée.
 
 ### 4.3 Force & priorité
 - Chaque swing porte un `force_level` ; le calcul (cascade demi-paliers + cassages **+2 demi-paliers/cassage, plafond 2** − dégradations) = **`OB_DETECTION_SPEC §3.2`** (modèle de force, pointeur vers `force-energie.md`).
