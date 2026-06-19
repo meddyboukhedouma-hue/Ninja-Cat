@@ -1,0 +1,489 @@
+//@version=6
+// OB DETECTOR v2.13 (revert v2.14) — FORCE : (plus petit des 2 swings du 1-2) + 2 temps (1-2) − dégradations. cartographie.py N'EST PAS une référence canon.
+//   BASE = f_idxFromATR(min(pBrkR, h)) = le plus petit des 2 swings du 1-2 (24tpbSEAXeA 00:13:40, WO1gp3sk5U0 00:41:29). pBrkR = jambe cassure-1, h = jambe cassure-2.
+//   CLIMB = +4 demi-paliers (= +2 temps du 1-2) → tf0f = min(tf0+4, 11). SOURCÉ DIRECT jevVat55Svg 01:10:28 « un cassage = force d'un temps au-dessus ; deux cassage = force de deux temps au-dessus ». Constant car l'OB = toujours le 1-2 (pBrkDir). Né de rien (contre-swing absent) retire 1 cassage via degSeq #1c. Seuil contre-swing reste relatif à tf0 (base, non-climbé).
+//   Déclencheur cassure-corps (reqCorps) + cycle de vie §T1-bis + dégradations §3.2 (#1c/#4) + polarité=localisation §4.4.
+//   ARBITRAGE (transcript, xFnFjopAzz8 01:53:18/55) : le 0,45 ATR qualifie la TAILLE de la FVG/zone LAISSÉE — « < 0,45 → plus rien, le marché part ».
+//   → mort par reste<0,45 DÉCOUPLÉE du nb de tapes (avant : taps≥3 ET reste<0,45 ; canon = reste<0,45 seul, dès qu'une entame consomme la zone). maxTaps ne pilote plus que le fondu.
+indicator("OB Detector v1 — G", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500)
+
+len     = input.int(5,   "Longueur pivots (tracé)", minval=1, maxval=50, group="Tracé")
+showZig = input.bool(false, "Afficher le tracé (zigzag)", group="Tracé")
+atrLen  = input.int(233, "ATR (SMA)", minval=1, group="Swing")
+minATR  = input.float(3.0, "Leg cassant min ×ATR", step=0.1, group="Swing")
+reqCorps= input.bool(true, "Cassure-CORPS : exiger une clôture au-delà du swing cassé (sinon = fausse cassure/mèche)", group="Swing")
+allOB   = input.bool(true, "CARTOGRAPHIE : garder les OB (sinon 1 seule)", group="OB")
+maxOB   = input.int(18, "Nb max d'OB affichés (récents) — lisibilité", minval=1, maxval=300, group="OB")
+showDown= input.bool(false, "Afficher les OB micro-corps (< 0,30 ATR)", group="OB")
+keepMit = input.bool(false, "Garder les OB mitigées (estompées)", group="OB")
+showLbl = input.bool(true, "Labels", group="OB")
+showF   = input.bool(true, "Afficher la Force (nom du TF0)", group="OB")
+showPol = input.bool(true, "Marquer la polarité + (OB intérieurs)", group="OB")
+txtSize = input.string("Petit", "Taille du texte", options=["Petit", "Moyen", "Grand"], group="OB")
+
+gE = "Force — épaisseur × polarité (table §4.4)"
+thNorm  = input.float(0.75, "Seuil normale (×ATR)", step=0.05, group=gE)
+thEp    = input.float(1.5,  "Seuil ÉPAISSE (×ATR)", step=0.05, group=gE)
+thVEp   = input.float(2.7,  "Seuil TRÈS ÉPAISSE (×ATR)", step=0.05, group=gE)
+degForce= input.bool(true,  "Dégrader la force (§4.4 : extrême −2/−1/−2 · intérieur −1/0/−2)", group=gE)
+
+gL = "Dégradations séquence — liquidité / contre-swing (§3.2 · doctrine)"
+useSeqDeg = input.bool(true, "Dégrader la base : contre-swing absent + liquidité sous (−1 chacune)", group=gL)
+csNoise   = input.float(1.0, "Contre-swing : taille mini ×ATR (plancher « ~1 cm »)", step=0.1, group=gL)
+liqAbove  = input.bool(false, "Inclure « liquidité au-dessus » (#2 DIFFÉRÉ : recouvre #4 sur BEAR)", group=gL)
+
+gV = "Cycle de vie — mitigation (§T1-bis · doctrine)"
+useLife = input.bool(true, "Cycle de vie : compteur de tapes + désactivation", group=gV)
+maxTaps = input.int(3, "Tapes : palier de saturation du fondu (la MORT ne dépend plus du nb de tapes — canon xFnFjopAzz8)", minval=1, maxval=10, group=gV)
+thReste = input.float(0.45, "Reste min après entame (×ATR) — zone/FVG laissée ; sinon mort (canon xFnFjopAzz8)", step=0.05, group=gV)
+
+gM = "Multi-TF (fondation TF−0,5)"
+useMTF  = input.bool(true, "Activer le multi-TF (TF−0,5)", group=gM)
+plenL   = input.int(5, "Longueur pivots TF−0,5", minval=1, maxval=50, group=gM)
+showMTF = input.bool(false, "Debug : marquer les pivots TF−0,5 (triangles ▽△ — affichage seul)", group=gM)
+showInt = input.bool(true, "Tracer les OB INTÉRIEURS (enfouis / +, localisation §2.5)", group=gM)
+microLen= input.int(2, "Longueur micro-pivots internes (≈ TF−0,5, barres précises)", minval=1, maxval=10, group=gM)
+
+gS = "Style"
+demCol  = input.color(#089981, "Demande", group=gS)
+supCol  = input.color(#F23645, "Offre", group=gS)
+griCol  = input.color(#FF9800, "Zone grise", group=gS)
+mitCol  = input.color(#787B86, "Mitigée", group=gS)
+zigCol  = input.color(#787B86, "Zigzag", group=gS)
+
+tSize = txtSize == "Petit" ? size.small : txtSize == "Grand" ? size.large : size.normal
+
+atr233 = ta.sma(ta.tr(true), atrLen)
+ph = ta.pivothigh(high, len, len)
+pl = ta.pivotlow(low,  len, len)
+mph = ta.pivothigh(high, microLen, microLen)
+mpl = ta.pivotlow(low,  microLen, microLen)
+pBar = bar_index - len
+
+tfMin = timeframe.in_seconds(timeframe.period) / 60.0
+chartIdx = tfMin <= 1 ? 0 : tfMin <= 3 ? 1 : tfMin <= 5 ? 2 : tfMin <= 8 ? 3 : tfMin <= 15 ? 4 : tfMin <= 30 ? 5 : tfMin <= 60 ? 6 : tfMin <= 120 ? 7 : tfMin <= 240 ? 8 : tfMin <= 480 ? 9 : tfMin <= 1440 ? 10 : 11
+f_tfName(int idx) =>
+    switch idx
+        0 => "M1"
+        1 => "M3"
+        2 => "M5"
+        3 => "M8"
+        4 => "M15"
+        5 => "M30"
+        6 => "H1"
+        7 => "H2"
+        8 => "H4"
+        9 => "H8"
+        10 => "D1"
+        => "W1"
+
+f_tfRes(int idx) =>
+    switch idx
+        0 => "1"
+        1 => "3"
+        2 => "5"
+        3 => "8"
+        4 => "15"
+        5 => "30"
+        6 => "60"
+        7 => "120"
+        8 => "240"
+        9 => "480"
+        10 => "1440"
+        => "W"
+
+f_idxFromATR(float ratio) =>
+    int idx = chartIdx
+    float r = ratio
+    if not na(r)
+        while r > 4.0 and idx < 11
+            r := r / 1.4142135623730951
+            idx := idx + 1
+    idx
+
+tfLowIdx = math.max(chartIdx - 1, 0)
+tfLowRes = f_tfRes(tfLowIdx)
+[phLow, plLow] = request.security(syminfo.tickerid, tfLowRes, [ta.pivothigh(high, plenL, plenL), ta.pivotlow(low, plenL, plenL)], lookahead=barmerge.lookahead_off)
+
+var int   sDir = 0
+var float curPx = na
+var int   curBar = na
+var float curHi = na
+var float curLo = na
+var float curO  = na
+var float curC  = na
+var float curA  = na
+var float anPx = na
+var int   anBar = na
+var float anHi = na
+var float anLo = na
+var float anO  = na
+var float anC  = na
+var float anA  = na
+var float prevHigh = na
+var float prevLow = na
+var float lastHigh = na
+var float lastLow = na
+var bool  dnBrkC = false
+var bool  upBrkC = false
+
+var int   pBrkDir = 0
+var float pBrkT = na
+var float pBrkB = na
+var float pBrkO = na
+var float pBrkC = na
+var float pBrkA = na
+var float pBrkR = na
+var int   pBrkBar = na
+var int   pBrkEndBar = na
+var float pBrkEndPx = na
+
+type OB
+    box   bx
+    label lb
+    float top
+    float bot
+    bool  bull
+    color col
+    int   fill
+    int   taps
+    bool  inside
+    float ext
+    bool  dead
+
+var OB[] obs  = array.new<OB>()
+var OB[] iobs = array.new<OB>()
+
+var float[] mpPx  = array.new_float()
+var int[]   mpBar = array.new_int()
+var bool[]  mpHi  = array.new_bool()
+var float[] mpCH  = array.new_float()
+var float[] mpCL  = array.new_float()
+if not na(mph)
+    array.push(mpPx, mph)
+    array.push(mpBar, bar_index - microLen)
+    array.push(mpHi, true)
+    array.push(mpCH, high[microLen])
+    array.push(mpCL, low[microLen])
+if not na(mpl)
+    array.push(mpPx, mpl)
+    array.push(mpBar, bar_index - microLen)
+    array.push(mpHi, false)
+    array.push(mpCH, high[microLen])
+    array.push(mpCL, low[microLen])
+if array.size(mpPx) > 2000
+    array.shift(mpPx)
+    array.shift(mpBar)
+    array.shift(mpHi)
+    array.shift(mpCH)
+    array.shift(mpCL)
+
+var int[]   spBar = array.new_int()
+var float[] spPx  = array.new_float()
+var bool[]  spHi  = array.new_bool()
+var float[] spRat = array.new_float()
+var bool[]  spBrk = array.new_bool()
+f_lastOpp(bool wantHi) =>
+    float res = na
+    if array.size(spPx) > 0
+        for q = array.size(spPx) - 1 to 0
+            if na(res) and array.get(spHi, q) == wantHi
+                res := array.get(spPx, q)
+    res
+if not na(ph)
+    lowPrev = f_lastOpp(false)
+    array.push(spBar, pBar)
+    array.push(spPx, ph)
+    array.push(spHi, true)
+    array.push(spRat, (atr233 > 0 and not na(lowPrev)) ? (ph - lowPrev) / atr233 : na)
+    array.push(spBrk, false)
+if not na(pl)
+    highPrev = f_lastOpp(true)
+    array.push(spBar, pBar)
+    array.push(spPx, pl)
+    array.push(spHi, false)
+    array.push(spRat, (atr233 > 0 and not na(highPrev)) ? (highPrev - pl) / atr233 : na)
+    array.push(spBrk, false)
+if array.size(spBar) > 300
+    array.shift(spBar)
+    array.shift(spPx)
+    array.shift(spHi)
+    array.shift(spRat)
+    array.shift(spBrk)
+if array.size(spBar) > 0
+    for q = 0 to array.size(spBar) - 1
+        if not array.get(spBrk, q)
+            broken = array.get(spHi, q) ? (close > array.get(spPx, q)) : (close < array.get(spPx, q))
+            if broken
+                array.set(spBrk, q, true)
+
+f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool bull, int endBar, float endPx) =>
+    bodyR = za > 0 ? math.abs(cc - oo) / za : na
+    string typ = "?"
+    float top = hi
+    float bot = lo
+    bool draw = true
+    if na(bodyR)
+        typ := "?"
+    else if bodyR < 0.30
+        typ := "micro"
+        draw := showDown
+    else if bodyR <= 0.63
+        typ := "corps"
+        top := math.max(oo, cc)
+        bot := math.min(oo, cc)
+    else if bodyR <= 0.65
+        typ := "gris"
+    else
+        typ := "FVG"
+    int tf0 = f_idxFromATR(ratio)
+    int degSeq = 0
+    if useSeqDeg
+        float pbDepth = 0.0
+        float runX = na
+        if array.size(mpBar) > 0
+            for k = 0 to array.size(mpBar) - 1
+                mb2 = array.get(mpBar, k)
+                if mb2 > x1 and mb2 < endBar
+                    mh2 = array.get(mpHi, k)
+                    mv2 = array.get(mpPx, k)
+                    if bull
+                        if mh2
+                            runX := na(runX) ? mv2 : math.max(runX, mv2)
+                        else if not na(runX)
+                            pbDepth := math.max(pbDepth, runX - mv2)
+                    else
+                        if not mh2
+                            runX := na(runX) ? mv2 : math.min(runX, mv2)
+                        else if not na(runX)
+                            pbDepth := math.max(pbDepth, mv2 - runX)
+        float pbATR = atr233 > 0 ? pbDepth / atr233 : 0.0
+        bool csPresent = pbATR >= csNoise and f_idxFromATR(pbATR) >= tf0 - 3
+        if not csPresent
+            degSeq := degSeq + 2
+        bool liqSous = false
+        int  liqBar  = na
+        if array.size(spBar) > 0
+            for q = 0 to array.size(spBar) - 1
+                if not liqSous and array.get(spBar, q) < x1 and not array.get(spBrk, q)
+                    if bull and (not array.get(spHi, q)) and array.get(spPx, q) < lo
+                        liqSous := true
+                        liqBar  := array.get(spBar, q)
+                    else if (not bull) and array.get(spHi, q) and array.get(spPx, q) > hi
+                        liqSous := true
+                        liqBar  := array.get(spBar, q)
+        if liqSous
+            degSeq := degSeq + 2
+        if liqAbove
+            bool liqUp = false
+            if array.size(spBar) > 0
+                for q = 0 to array.size(spBar) - 1
+                    if not liqUp and array.get(spHi, q) and (not array.get(spBrk, q)) and array.get(spPx, q) > top and (na(liqBar) or array.get(spBar, q) != liqBar)
+                        float sr = array.get(spRat, q)
+                        if not na(sr) and f_idxFromATR(sr) >= tf0
+                            liqUp := true
+            if liqUp
+                degSeq := degSeq + 2
+    float thick = za > 0 ? (bull ? (hi - math.min(oo, cc)) : (math.max(oo, cc) - lo)) / za : na
+    string epz = na(thick) ? "?" : thick >= thVEp ? "très-ép" : thick >= thEp ? "épaisse" : thick >= thNorm ? "normale" : "fine"
+    int deg = degForce ? (epz == "épaisse" ? 2 : 4) : 0
+    int tf0f = math.min(tf0 + 4, 11)
+    int tf0e = tf0f - deg - degSeq
+    if showInt and not na(endBar) and not na(x1) and endBar > x1
+        int   fBar = na
+        float fCH  = na
+        float fCL  = na
+        bool  seenImp = false
+        if array.size(mpBar) > 0
+            for k = 0 to array.size(mpBar) - 1
+                if na(fBar)
+                    mb = array.get(mpBar, k)
+                    mv = array.get(mpPx, k)
+                    mh = array.get(mpHi, k)
+                    if mb > x1 and mb < endBar
+                        impSide = bull ? mh : (not mh)
+                        insideP = bull ? (mv > lo and (na(endPx) or mv < endPx)) : (mv < hi and (na(endPx) or mv > endPx))
+                        if impSide
+                            seenImp := true
+                        else if seenImp and insideP
+                            fBar := mb
+                            fCH := array.get(mpCH, k)
+                            fCL := array.get(mpCL, k)
+        if not na(fBar)
+            icol = bull ? demCol : supCol
+            iside = bull ? "BULL ▲" : "BEAR ▼"
+            float ithick = atr233 > 0 ? (fCH - fCL) / atr233 : na
+            string iepz = na(ithick) ? "?" : ithick >= thVEp ? "très-ép" : ithick >= thEp ? "épaisse" : "normale"
+            int ideg = degForce ? (iepz == "épaisse" ? 0 : iepz == "très-ép" ? 4 : 2) : 0
+            int itf = tf0f - ideg - degSeq
+            string iftxt = showF ? ("  ·  " + (itf < 0 ? "<M1" : f_tfName(math.max(0, math.min(11, itf)))) + (ideg + degSeq > 0 ? " ←" + f_tfName(tf0f) : "")) : ""
+            ib = box.new(fBar, fCH, bar_index, fCL, xloc=xloc.bar_index, bgcolor=color.new(icol, 90), border_color=color.new(icol, 55), border_style=line.style_dotted, border_width=1)
+            il = label.new(bar_index + 1, (fCH + fCL) / 2.0, showLbl ? (iside + iftxt + (showPol ? "  ·  +" : "")) : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(#FFB300, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
+            array.push(iobs, OB.new(ib, il, fCH, fCL, bull, icol, 90, 0, false, bull ? fCH : fCL, false))
+            while array.size(iobs) > maxOB
+                old = array.shift(iobs)
+                box.delete(old.bx)
+                label.delete(old.lb)
+    base = typ == "gris" ? griCol : (bull ? demCol : supCol)
+    if not allOB
+        while array.size(obs) > 0
+            old = array.shift(obs)
+            box.delete(old.bx)
+            label.delete(old.lb)
+    if draw
+        isDown = typ == "micro"
+        isFvg  = typ == "FVG"
+        bstyle = isFvg ? line.style_dashed : (isDown ? line.style_dotted : line.style_solid)
+        fillT  = isDown ? 95 : (isFvg ? 90 : 87)
+        side = bull ? "BULL ▲" : "BEAR ▼"
+        string fbase = tf0e < 0 ? "<M1" : f_tfName(math.max(0, math.min(11, tf0e)))
+        string fstr = fbase + (deg + degSeq > 0 ? " ←" + f_tfName(tf0f) : "")
+        ftxt = showF and not na(ratio) ? ("  ·  " + fstr) : ""
+        txt = showLbl ? (side + ftxt) : ""
+        b = box.new(x1, top, bar_index, bot, xloc=xloc.bar_index, bgcolor=color.new(base, fillT), border_color=color.new(base, isDown ? 65 : 45), border_style=bstyle, border_width=1)
+        l = label.new(bar_index + 1, (top + bot) / 2.0, txt, xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(base, isDown ? 45 : 12), style=label.style_label_left, size=tSize, textalign=text.align_left)
+        array.push(obs, OB.new(b, l, top, bot, bull, base, fillT, 0, false, bull ? top : bot, false))
+        while array.size(obs) > maxOB
+            old = array.shift(obs)
+            box.delete(old.bx)
+            label.delete(old.lb)
+
+if not na(ph)
+    isNew = sDir != 1
+    isExt = sDir == 1 and ph > curPx
+    if isNew or isExt
+        if isNew
+            if sDir == -1 and not na(anPx) and not na(curPx)
+                isLL = na(prevLow) or curPx < prevLow
+                h = atr233 > 0 ? math.abs(anPx - curPx) / atr233 : na
+                if isLL and not na(h) and h >= minATR and (not reqCorps or dnBrkC)
+                    if pBrkDir == -1 and not na(pBrkBar)
+                        f_OB(pBrkBar, pBrkT, pBrkB, pBrkO, pBrkC, pBrkA, math.min(pBrkR, h), false, pBrkEndBar, pBrkEndPx)
+                    pBrkDir := -1
+                    pBrkT := anHi
+                    pBrkB := anLo
+                    pBrkO := anO
+                    pBrkC := anC
+                    pBrkA := anA
+                    pBrkR := h
+                    pBrkBar := anBar
+                    pBrkEndBar := curBar
+                    pBrkEndPx := curPx
+                prevLow := lastLow
+            if showZig and not na(anBar) and not na(curBar)
+                line.new(anBar, anPx, curBar, curPx, xloc=xloc.bar_index, color=color.new(zigCol, 45), width=1)
+            prevHigh := lastHigh
+            anPx := curPx
+            anBar := curBar
+            anHi := curHi
+            anLo := curLo
+            anO := curO
+            anC := curC
+            anA := curA
+            sDir := 1
+            upBrkC := false
+        curPx := ph
+        curBar := pBar
+        curHi := high[len]
+        curLo := low[len]
+        curO := open[len]
+        curC := close[len]
+        curA := atr233[len]
+        lastHigh := ph
+
+if not na(pl)
+    isNew = sDir != -1
+    isExt = sDir == -1 and pl < curPx
+    if isNew or isExt
+        if isNew
+            if sDir == 1 and not na(anPx) and not na(curPx)
+                isHH = na(prevHigh) or curPx > prevHigh
+                h = atr233 > 0 ? math.abs(curPx - anPx) / atr233 : na
+                if isHH and not na(h) and h >= minATR and (not reqCorps or upBrkC)
+                    if pBrkDir == 1 and not na(pBrkBar)
+                        f_OB(pBrkBar, pBrkT, pBrkB, pBrkO, pBrkC, pBrkA, math.min(pBrkR, h), true, pBrkEndBar, pBrkEndPx)
+                    pBrkDir := 1
+                    pBrkT := anHi
+                    pBrkB := anLo
+                    pBrkO := anO
+                    pBrkC := anC
+                    pBrkA := anA
+                    pBrkR := h
+                    pBrkBar := anBar
+                    pBrkEndBar := curBar
+                    pBrkEndPx := curPx
+                prevHigh := lastHigh
+            if showZig and not na(anBar) and not na(curBar)
+                line.new(anBar, anPx, curBar, curPx, xloc=xloc.bar_index, color=color.new(zigCol, 45), width=1)
+            prevLow := lastLow
+            anPx := curPx
+            anBar := curBar
+            anHi := curHi
+            anLo := curLo
+            anO := curO
+            anC := curC
+            anA := curA
+            sDir := -1
+            dnBrkC := false
+        curPx := pl
+        curBar := pBar
+        curHi := high[len]
+        curLo := low[len]
+        curO := open[len]
+        curC := close[len]
+        curA := atr233[len]
+        lastLow := pl
+
+if not na(prevLow) and sDir == -1 and close < prevLow
+    dnBrkC := true
+if not na(prevHigh) and sDir == 1 and close > prevHigh
+    upBrkC := true
+
+f_life(OB o) =>
+    if not o.dead
+        traversed = o.bull ? close < o.bot : close > o.top
+        touching  = low <= o.top and high >= o.bot
+        if useLife
+            if touching and not o.inside
+                o.taps := o.taps + 1
+            o.inside := touching
+            if touching
+                o.ext := o.bull ? math.min(o.ext, low) : math.max(o.ext, high)
+        float reste = o.bull ? (o.ext - o.bot) : (o.top - o.ext)
+        float resteATR = atr233 > 0 ? reste / atr233 : na
+        bool wornOut = useLife and not na(resteATR) and resteATR < thReste
+        if traversed or wornOut
+            o.dead := true
+            box.set_right(o.bx, bar_index)
+            box.set_bgcolor(o.bx, color.new(mitCol, 94))
+            box.set_border_color(o.bx, color.new(mitCol, 80))
+            box.set_border_style(o.bx, line.style_dotted)
+            if keepMit
+                label.set_xy(o.lb, bar_index + 1, (o.top + o.bot) / 2.0)
+                label.set_textcolor(o.lb, color.new(mitCol, 25))
+            else
+                box.delete(o.bx)
+                label.delete(o.lb)
+        else
+            box.set_right(o.bx, bar_index)
+            label.set_xy(o.lb, bar_index + 1, (o.top + o.bot) / 2.0)
+            if useLife and o.taps > 0
+                int fade = math.min(math.round(o.taps * 9.0 / maxTaps), 9)
+                box.set_bgcolor(o.bx, color.new(o.col, math.min(o.fill + fade, 96)))
+
+if barstate.isconfirmed
+    if array.size(obs) > 0
+        for i = 0 to array.size(obs) - 1
+            f_life(array.get(obs, i))
+    if array.size(iobs) > 0
+        for j = 0 to array.size(iobs) - 1
+            f_life(array.get(iobs, j))
+
+plot(atr233, "ATR233", color=color.new(color.gray, 100), display=display.data_window)
+
+plotshape(useMTF and showMTF and not na(phLow), title="Pivot TF−0,5 haut", style=shape.triangledown, location=location.abovebar, color=color.new(#FFD600, 0), size=size.tiny)
+plotshape(useMTF and showMTF and not na(plLow), title="Pivot TF−0,5 bas", style=shape.triangleup, location=location.belowbar, color=color.new(#00B0FF, 0), size=size.tiny)
+var table mtfTbl = table.new(position.top_right, 1, 1)
+if barstate.islast
+    txtTbl = useMTF ? ("TF−0,5 = " + f_tfName(tfLowIdx) + " (" + tfLowRes + ")") : "multi-TF OFF"
+    table.cell(mtfTbl, 0, 0, txtTbl, text_color=color.white, text_size=size.normal, bgcolor=color.new(color.black, 20))
