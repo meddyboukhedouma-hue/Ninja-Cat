@@ -227,18 +227,33 @@ Les 5 types sont détectés sur **Large / Moyen / Court** (ebook p11). Chaque zo
 
 | Configuration | Quantum | Condition | Source (vérifiée) | Câblé `cartographie.py` |
 |---|---|---|---|---|
-| Polarité OB d'origine | +1 positive / −2 négative | Convention A | force-energie §4.4 | ✅ `polarite` |
+| Polarité — zone **normale** | **−1** alignée biais / **−2** opposée | Convention A. L'alignement = visible/exposée vs enfouie/protégée → coder sur `alignement_biais ∈ {aligned, opposed}`, **jamais** le mot « polarité » (signe inversé dans `WO1gp3sk5U0`, physique identique) | force-energie §4.4 (l.1251) ; verbatim `vZ15cwe3r5A @ 00:48:59`, `24tpbSEAXeA @ 01:14:25`, `v0uou9miWnQ @ 00:34:30` | ✅ `polarite` |
 | Liquidité sous le 1er swing | −1 | — | force-energie | ✅ `liquidite_sous_swing1` |
 | Zone sur zone (même TF) | −1 | la zone du dessus devient « visible » = liquidité | `NOAGAfn5VhQ @ 00:07:17` | ✅ `zone_sur_zone` |
 | Zone avant l'OB d'origine | **−1 temps** (= −2 demi-paliers) | FVG exceptée | `24tpbSEAXeA @ 00:30:18` | ✅ code `−1` = −1 fois = −2 demi-paliers (R13(e) : **cohérent**, pas une incohérence) |
 | Liquidité avant la liquidité (jeu interne) | −1 | cible intermédiaire + liquidité au-delà + jeu interne | `ufdWzL2kXUY @ 00:07:36` | ❌ manquant |
 | Liquidité au-dessus de la zone | −1 | **seulement si force ≥** (plus faible ne compte pas) | `WO1gp3sk5U0 @ 00:42:03` / `@ 02:01:55` | ❌ manquant |
-| Zone **épaisse** | **+1 (bonus masse) → net ~0** | « jeu d'un temps au-dessus » ; compense une dégradation (`WO1gp3sk5U0 @ 00:29:32` : « zéro force si vous êtes une zone épaisse ») | `WO1gp3sk5U0 @ 00:29:32` / `24tpbSEAXeA @ 01:13:19` | ❌ différé Phase 2 |
-| Zone **TRÈS épaisse** | **−2** | ≥ ~2,7 ATR (seuil `WO1gp3sk5U0` ; absent de `24tpbSEAXeA` — R13) | `WO1gp3sk5U0 @ 00:36:22` / exemple `@ 00:41:54` | ❌ différé Phase 2 |
+| Zone **épaisse** | **0** alignée biais / **−1** opposée | net **déjà cumulé** (+1 masse −2 épaisseur +1/0 polarité) ; polarité **s'applique** ; seuil **1,5–2,65 ATR** | force-energie §4.4 (l.1252, 1258-1259) ; `WO1gp3sk5U0 @ 00:29:42` / `@ 00:31:44` | 🟡 codable **si** alignement connu |
+| Zone **TRÈS épaisse** | **−2** (polarité-**indépendant**) | **≥ 2,7 ATR** (commun `24tpbSEAXeA` **et** `WO1gp3sk5U0`) | force-energie §4.4 (l.1253, 1260) ; `WO1gp3sk5U0 @ 00:40:49` / `@ 00:41:01` | ✅ **codé v2.8** (single-TF) |
 | Contre-swing absent | −1 | swing « né de rien » | `24tpbSEAXeA @ 01:16:26` | ❌ manquant |
 | Fausse cassure | **÷2** (la moitié) | jeu interne | `FFxKFvuYxrM @ 00:55:54` | (cf. force-energie) |
 
 Comptage canon : **pas de cumul automatique** par liquidité successive — lire la structure sur 2 cassages (`6eL9OUdSc94 @ 00:29:45`) ; `force ∈ [0, 11]` ; plafond **+2 sur les cassages uniquement** ; « en cas de doute, **sous-estimer** la force » (`7S_Iovunj20 @ 00:19:24`).
+
+**Dégradation d'épaisseur — tranché 2026-06-19** (table §4.4 verbatim, triple-sourcée ; mesure = **bas du corps → haut de la mèche**, en ×ATR233) :
+
+| Épaisseur | Polarité + (alignée biais) | Polarité − (opposée) |
+|---|---|---|
+| Normale | **−1** | **−2** |
+| Épaisse | **0** | **−1** |
+| Très épaisse | **−2** | **−2** |
+
+- **Seuils retenus** : Normale **0,75–1,5** · Épaisse **1,5–2,65** · Très épaisse **≥ 2,7 ATR** — vidéo `24tpbSEAXeA`, retenue (R13 **clos**) car (a) **cours dédié** aux forces et (b) **plus récente** (~mai 2026) que `WO1gp3sk5U0` (2026-02-23) ; `≥ 2,7` est **commun aux deux**. La table de coûts ci-dessus vient de `WO1gp3sk5U0` ; mariage seuils↔coûts validé par le wiki (Convention A) — arbitrage humain assumé.
+- **Unité** : 1 force = 1 temps = **2 demi-paliers**. Donc en index de cascade : Normale −2/−4 · Épaisse 0/−2 · Très épaisse −4/−4.
+- **Cumul** : la table §4.4 **intègre déjà** masse + polarité (somme additive : épaisse = +1 −2 +1 = 0) — **ne pas re-cumuler**. Le cumul avec les **autres** dégradations (§4.5 liquidité…) est, lui, additif (exemple §5 : très épaisse −2 + liquidité −1 = −3).
+- **Polarité** : s'applique à **normale ET épaisse** ; **pas** à très épaisse (−2 fixe).
+- **⚠️ Limite single-TF** : la polarité = **alignement** (visible/exposée vs enfouie/protégée) est **entanglée avec la grille §2.5** → **normale/épaisse NON calculables single-TF** tant que la grille n'est pas câblée. Seule la **très épaisse (−2, polarité-indépendante)** est codée en single-TF (**v2.8**).
+- **TROU (non tranché par le vault)** : aucune règle canon de **plancher** de dégradation (pas de clamp `force ≥ 0` / `≥ M1`). **Ne pas inventer** — décision humaine.
 
 ### 3.3 Résolution (zones concurrentes) ✅ (corrigé 2026-06-18)
 Pour des zones concurrentes sur le chemin du prix :
