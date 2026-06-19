@@ -19,6 +19,9 @@ data/
 # Vendor (cloné séparément, cf. README)
 vendor/
 
+# Vault doctrinal + ressources fournies par l'humain (source de doctrine, hors git)
+ressources/
+
 # IDE / OS
 .idea/
 .vscode/
