@@ -51,6 +51,9 @@ gC = "Chaîne demi-paliers / faux-swing (-ePJRgURtOA 02:04-02:05)"
 useChain = input.bool(true, "Faux-swing : rabaisser la base au DERNIER maillon continu (chaîne M4→M8→M15… ; saut = faux swing). Extraction zigzag-ATR multi-échelle bornée à la jambe.", group=gC)
 showChain= input.bool(false, "Debug : marquer ⚠ les bases « faux-swing » rabaissées", group=gC)
 
+gA = "ABA — base = milieu (opposé) d'une 5 barres"
+useABA  = input.bool(true, "SCAN ABA : la BASE = la BOUGIE DU MILIEU d'une 5 barres, OPPOSÉE aux 4 bougies d'accélération (2 même sens · base opposée · 2 même sens) = l'OB. Détection + tag ; force/désact DIFFÉRÉES. (prouvé 18/06 14:30 UTC : bear·bear·BULL·bear·bear)", group=gA)
+
 gS = "Style"
 demCol  = input.color(#089981, "Demande", group=gS)
 supCol  = input.color(#F23645, "Offre", group=gS)
@@ -172,6 +175,7 @@ type OB
     bool  dead
     int   f0
     bool  desact
+    bool  aba
 
 var OB[] obs  = array.new<OB>()
 var OB[] iobs = array.new<OB>()
@@ -199,6 +203,31 @@ if array.size(mpPx) > 2000
     array.shift(mpHi)
     array.shift(mpCH)
     array.shift(mpCL)
+
+// Direction + amplitude + OHLC PAR BARRE (pour f_accel ET le scan ABA, SANS accès historique [] → évite la limite max_bars_back de Pine, cause possible des study_count:0 intermittents). +1 bull / −1 bear / 0 doji ; range/ATR233 (3x). Push 1×/barre confirmée → cBar CONTIGU (indexation directe).
+var int[]   cDir = array.new_int()
+var float[] cRng = array.new_float()
+var int[]   cBar = array.new_int()
+var float[] cO   = array.new_float()
+var float[] cH   = array.new_float()
+var float[] cL   = array.new_float()
+var float[] cC   = array.new_float()
+if barstate.isconfirmed
+    array.push(cDir, close > open ? 1 : close < open ? -1 : 0)
+    array.push(cRng, atr233 > 0 ? (high - low) / atr233 : 0.0)
+    array.push(cBar, bar_index)
+    array.push(cO, open)
+    array.push(cH, high)
+    array.push(cL, low)
+    array.push(cC, close)
+    if array.size(cDir) > 5000
+        array.shift(cDir)
+        array.shift(cRng)
+        array.shift(cBar)
+        array.shift(cO)
+        array.shift(cH)
+        array.shift(cL)
+        array.shift(cC)
 
 var int[]   spBar = array.new_int()
 var float[] spPx  = array.new_float()
@@ -253,6 +282,37 @@ f_purge(OB[] arr) =>
             old = array.remove(arr, idxDel)
             box.delete(old.bx)
             label.delete(old.lb)
+
+// ABA — accélération canon (5-barres OU 3x) lue sur les bougies CHART via les arrays par-barre cDir/cRng (PAS d'accès historique [] → robuste face à max_bars_back). 5-barres = ≥5 bougies consécutives même sens, ≤1 opposée isolée, JAMAIS 2 consécutives (yiy47FOMIOk 00:16:01 + 00:16:30). 3x = bougie ≥ minATR (bougie-3x.md). cBar contigu → indexation directe (last - bar). Logique de qualification INCHANGÉE (durcissement implémentation seul).
+f_accel(int aBar, int bBar, bool bull) =>
+    bool ok = false
+    int sz = array.size(cBar)
+    if not na(aBar) and not na(bBar) and bBar >= aBar and (bBar - aBar) <= 300 and sz > 0
+        int last = array.get(cBar, sz - 1)
+        int iHi = math.min(sz - 1 - (last - bBar), sz - 1)
+        int iLo = math.max(sz - 1 - (last - aBar), 0)
+        if iLo <= iHi
+            int cnt = 0
+            int oppTot = 0
+            int oppRun = 0
+            bool twoOpp = false
+            bool has3x = false
+            for idx = iLo to iHi
+                int d = array.get(cDir, idx)
+                float rg = array.get(cRng, idx)
+                bool dirMatch = bull ? (d == 1) : (d == -1)
+                if dirMatch
+                    cnt := cnt + 1
+                    oppRun := 0
+                else
+                    oppTot := oppTot + 1
+                    oppRun := oppRun + 1
+                    if oppRun >= 2
+                        twoOpp := true
+                if rg >= minATR and dirMatch
+                    has3x := true
+            ok := has3x or (cnt >= 5 and oppTot <= 1 and not twoOpp)
+    ok
 
 f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool bull, int endBar, float endPx) =>
     bodyR = za > 0 ? math.abs(cc - oo) / za : na
@@ -403,6 +463,7 @@ f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool
                     ct := ct + 1
                 chainBase := ct >= tf0 - 1 ? tf0 : ct
     bool fantome = chainBase < tf0
+    // ABA retiré d'ici : la détection ABA est désormais un SCAN MORPHOLOGIQUE AUTONOME (la BASE du milieu = l'OB, FQO8F7WmlGY 00:06-09 / jQ1dw2zgUek 00:45:21), PAS un test sur l'OB-swing ancré x1 (« ne confond pas » : l'OB d'un ABA n'est pas la 1ʳᵉ bougie). Voir bloc « SCAN ABA » en fin de script.
     int tf0fExt = typ == "FVG" ? chainBase : math.min(chainBase + 4, 11)
     int tf0fInt = math.min(chainBase + 4, 11)
     int tf0e = tf0fExt - deg - sqEff - degNoInner
@@ -416,7 +477,7 @@ f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool
         string iftxt = showF ? ("  ·  " + (itf < 0 ? "<M1" : f_tfName(math.max(0, math.min(11, itf)))) + (ideg + degSeq > 0 ? " ←" + f_tfName(tf0fInt) : "")) : ""
         ib = box.new(fBar, fCH, bar_index, fCL, xloc=xloc.bar_index, bgcolor=color.new(icol, 90), border_color=color.new(icol, 55), border_style=line.style_dotted, border_width=1)
         il = label.new(bar_index + 1, (fCH + fCL) / 2.0, showLbl ? (iside + iftxt + (showPol ? "  ·  +" : "")) : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(#FFB300, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
-        array.push(iobs, OB.new(ib, il, fCH, fCL, bull, icol, 90, 0, false, bull ? fCH : fCL, false, itf, false))
+        array.push(iobs, OB.new(ib, il, fCH, fCL, bull, icol, 90, 0, false, bull ? fCH : fCL, false, itf, false, false))
         f_purge(iobs)
     base = typ == "gris" ? griCol : (bull ? demCol : supCol)
     if not allOB
@@ -436,7 +497,7 @@ f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool
         txt = showLbl ? (side + ftxt) : ""
         b = box.new(x1, top, bar_index, bot, xloc=xloc.bar_index, bgcolor=color.new(base, fillT), border_color=color.new(base, isDown ? 65 : 45), border_style=bstyle, border_width=1)
         l = label.new(bar_index + 1, (top + bot) / 2.0, txt, xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(base, isDown ? 45 : 12), style=label.style_label_left, size=tSize, textalign=text.align_left)
-        array.push(obs, OB.new(b, l, top, bot, bull, base, fillT, 0, false, bull ? top : bot, false, tf0e, false))
+        array.push(obs, OB.new(b, l, top, bot, bull, base, fillT, 0, false, bull ? top : bot, false, tf0e, false, false))
         f_purge(obs)
 
 if not na(ph)
@@ -562,10 +623,44 @@ f_life(OB o) =>
                 int fade = math.min(math.round(o.taps * 9.0 / maxTaps), 9)
                 box.set_bgcolor(o.bx, color.new(o.col, math.min(o.fill + fade, 96)))
             // DÉSACTIVATION EN FORCE : OB tapé (désactivé) → perd −2 forces au retour (jeu normal, aNdmUXqCHfw 00:55:36). Force RECALCULÉE dynamiquement, une fois (flag desact). NB : taps≥1 = tapé/désactivé (lecture cartographie : la zone vaut désormais −2 si re-tradée).
-            if useDesact and o.taps >= 1 and not o.desact
+            if useDesact and o.taps >= 1 and not o.desact and not o.aba
                 o.desact := true
                 int fdes = o.f0 - 2
                 label.set_text(o.lb, showLbl ? ((o.bull ? "BULL ▲" : "BEAR ▼") + "  ·  " + (fdes < 0 ? "<M1" : f_tfName(math.max(0, math.min(11, fdes)))) + " ⊘désact") : "")
+
+// ===== SCAN ABA — la BASE = la BOUGIE DU MILIEU d'une 5 barres (humain 2026-06-21) =====
+// 5 barres = 1-2-3-4-5 ; la BASE = la bougie 3 (LE MILIEU). Règle positionnelle : 2 bougies d'accélération MÊME SENS (D) AVANT le milieu + la BASE (milieu, sens libre = la pause/opposée isolée tolérée par le canon 5-barres) + 2 bougies d'accélération MÊME SENS (D) APRÈS. La base (milieu) = l'OB, tracée low-to-high mèches comprises (cH[m]/cL[m]). Force/désact DIFFÉRÉES (v1). Dédup via lastAbaBar.
+var int lastAbaBar = na
+if useABA and barstate.isconfirmed
+    int szc = array.size(cBar)
+    if szc >= 5
+        int bestM = na
+        bool bestBull = false
+        for m = math.max(2, szc - 16) to szc - 3
+            int d1 = array.get(cDir, m - 2)
+            int d2 = array.get(cDir, m - 1)
+            int d3 = array.get(cDir, m + 1)
+            int d4 = array.get(cDir, m + 2)
+            int dm = array.get(cDir, m)
+            // base = bougie du milieu OPPOSÉE aux 4 bougies d'accélération (prouvé 18/06 14:30 UTC : 5 barres bear bear bear bear avec base BULL au milieu). 5 barres haussière → 4 bull + base BEAR ; baissière → 4 bear + base BULL.
+            if d1 == 1 and d2 == 1 and d3 == 1 and d4 == 1 and dm == -1
+                bestM := m
+                bestBull := true
+            else if d1 == -1 and d2 == -1 and d3 == -1 and d4 == -1 and dm == 1
+                bestM := m
+                bestBull := false
+        if not na(bestM)
+            int baseBar = array.get(cBar, bestM)
+            if na(lastAbaBar) or baseBar != lastAbaBar
+                lastAbaBar := baseBar
+                float bHi = array.get(cH, bestM)
+                float bLo = array.get(cL, bestM)
+                color acol = bestBull ? demCol : supCol
+                string aside = bestBull ? "BULL ▲" : "BEAR ▼"
+                box ab = box.new(baseBar, bHi, bar_index, bLo, xloc=xloc.bar_index, bgcolor=color.new(acol, 75), border_color=color.new(acol, 10), border_style=line.style_solid, border_width=2)
+                label al = label.new(bar_index + 1, (bHi + bLo) / 2.0, showLbl ? (aside + "  ·  ABA") : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(acol, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
+                array.push(obs, OB.new(ab, al, bHi, bLo, bestBull, acol, 75, 0, false, bestBull ? bHi : bLo, false, 0, false, true))
+                f_purge(obs)
 
 if barstate.isconfirmed
     if array.size(obs) > 0
