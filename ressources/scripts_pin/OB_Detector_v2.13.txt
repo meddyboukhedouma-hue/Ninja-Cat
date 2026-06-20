@@ -308,41 +308,43 @@ f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool
     //   EXCEPTION FVG = « temps zéro » : PAS de climb, PAS de dégradation (v0uou9miWnQ 00:33:47 « FVG cassée 2× = reste son TF » ; 8QoYIWwOF_I 01:20:58 « la FVG ne perd pas de force »). 1 cassage = +1 temps = +2 crans (cf. paires d'énergie {D1,H8}{H4,H2}{H1,M30}{M15,M8}{M5,M3}).
     //   Dégradations (épaisseur §4.4 polarité-dépendante + né-de-rien + liquidité-sous) = S/D (corps) uniquement. OB extrême = polarité NÉGATIVE (normale −2 temps via deg=4) ; OB intérieur = polarité POSITIVE (normale −1 via ideg=2) → intérieur plus fort que l'extrême (« positif perd moins »).
     int sqEff = typ == "corps" ? degSeq : 0
+    // OB INTÉRIEUR (1er micro-swing enfoui) — détecté TOUJOURS : sert à la dégradation pas-d'OB-interne (force) ET au tracé.
+    int   fBar = na
+    float fCH  = na
+    float fCL  = na
+    if not na(endBar) and not na(x1) and endBar > x1 and array.size(mpBar) > 0
+        bool seenImp = false
+        for k = 0 to array.size(mpBar) - 1
+            if na(fBar)
+                mb = array.get(mpBar, k)
+                mv = array.get(mpPx, k)
+                mh = array.get(mpHi, k)
+                if mb > x1 and mb < endBar
+                    impSide = bull ? mh : (not mh)
+                    insideP = bull ? (mv > lo and (na(endPx) or mv < endPx)) : (mv < hi and (na(endPx) or mv > endPx))
+                    if impSide
+                        seenImp := true
+                    else if seenImp and insideP
+                        fBar := mb
+                        fCH := array.get(mpCH, k)
+                        fCL := array.get(mpCL, k)
+    // PAS D'OB INTERNE = −1 force (7S_Iovunj20 00:08:27, 6TXrGxzn-eg 05:29:11) : jambe d'impulsion SANS OB enfoui → l'extrême perd 1 temps (−2 crans). S/D (corps) only, comme les autres dégradations séquence.
+    int degNoInner = (useSeqDeg and typ == "corps" and na(fBar)) ? 2 : 0
     int tf0fExt = typ == "FVG" ? tf0 : math.min(tf0 + 4, 11)
     int tf0fInt = math.min(tf0 + 4, 11)
-    int tf0e = tf0fExt - deg - sqEff
-    if showInt and not na(endBar) and not na(x1) and endBar > x1
-        int   fBar = na
-        float fCH  = na
-        float fCL  = na
-        bool  seenImp = false
-        if array.size(mpBar) > 0
-            for k = 0 to array.size(mpBar) - 1
-                if na(fBar)
-                    mb = array.get(mpBar, k)
-                    mv = array.get(mpPx, k)
-                    mh = array.get(mpHi, k)
-                    if mb > x1 and mb < endBar
-                        impSide = bull ? mh : (not mh)
-                        insideP = bull ? (mv > lo and (na(endPx) or mv < endPx)) : (mv < hi and (na(endPx) or mv > endPx))
-                        if impSide
-                            seenImp := true
-                        else if seenImp and insideP
-                            fBar := mb
-                            fCH := array.get(mpCH, k)
-                            fCL := array.get(mpCL, k)
-        if not na(fBar)
-            icol = bull ? demCol : supCol
-            iside = bull ? "BULL ▲" : "BEAR ▼"
-            float ithick = atr233 > 0 ? (fCH - fCL) / atr233 : na
-            string iepz = na(ithick) ? "?" : ithick >= thVEp ? "très-ép" : ithick >= thEp ? "épaisse" : "normale"
-            int ideg = degForce ? (iepz == "épaisse" ? 0 : iepz == "très-ép" ? 4 : 2) : 0
-            int itf = tf0fInt - ideg - degSeq
-            string iftxt = showF ? ("  ·  " + (itf < 0 ? "<M1" : f_tfName(math.max(0, math.min(11, itf)))) + (ideg + degSeq > 0 ? " ←" + f_tfName(tf0fInt) : "")) : ""
-            ib = box.new(fBar, fCH, bar_index, fCL, xloc=xloc.bar_index, bgcolor=color.new(icol, 90), border_color=color.new(icol, 55), border_style=line.style_dotted, border_width=1)
-            il = label.new(bar_index + 1, (fCH + fCL) / 2.0, showLbl ? (iside + iftxt + (showPol ? "  ·  +" : "")) : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(#FFB300, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
-            array.push(iobs, OB.new(ib, il, fCH, fCL, bull, icol, 90, 0, false, bull ? fCH : fCL, false))
-            f_purge(iobs)
+    int tf0e = tf0fExt - deg - sqEff - degNoInner
+    if showInt and not na(fBar)
+        icol = bull ? demCol : supCol
+        iside = bull ? "BULL ▲" : "BEAR ▼"
+        float ithick = atr233 > 0 ? (fCH - fCL) / atr233 : na
+        string iepz = na(ithick) ? "?" : ithick >= thVEp ? "très-ép" : ithick >= thEp ? "épaisse" : "normale"
+        int ideg = degForce ? (iepz == "épaisse" ? 0 : iepz == "très-ép" ? 4 : 2) : 0
+        int itf = tf0fInt - ideg - degSeq
+        string iftxt = showF ? ("  ·  " + (itf < 0 ? "<M1" : f_tfName(math.max(0, math.min(11, itf)))) + (ideg + degSeq > 0 ? " ←" + f_tfName(tf0fInt) : "")) : ""
+        ib = box.new(fBar, fCH, bar_index, fCL, xloc=xloc.bar_index, bgcolor=color.new(icol, 90), border_color=color.new(icol, 55), border_style=line.style_dotted, border_width=1)
+        il = label.new(bar_index + 1, (fCH + fCL) / 2.0, showLbl ? (iside + iftxt + (showPol ? "  ·  +" : "")) : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(#FFB300, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
+        array.push(iobs, OB.new(ib, il, fCH, fCL, bull, icol, 90, 0, false, bull ? fCH : fCL, false))
+        f_purge(iobs)
     base = typ == "gris" ? griCol : (bull ? demCol : supCol)
     if not allOB
         while array.size(obs) > 0
