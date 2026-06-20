@@ -1,10 +1,12 @@
 //@version=6
 // OB DETECTOR v2.13 (revert v2.14) — FORCE : (plus petit des 2 swings du 1-2) + 2 temps (1-2) − dégradations. cartographie.py N'EST PAS une référence canon.
 //   BASE = f_idxFromATR(min(pBrkR, h)) = le plus petit des 2 swings du 1-2 (24tpbSEAXeA 00:13:40, WO1gp3sk5U0 00:41:29). pBrkR = jambe cassure-1, h = jambe cassure-2.
-//   CLIMB = +4 demi-paliers (= +2 temps du 1-2) → tf0f = min(tf0+4, 11). SOURCÉ DIRECT jevVat55Svg 01:10:28 « un cassage = force d'un temps au-dessus ; deux cassage = force de deux temps au-dessus ». Constant car l'OB = toujours le 1-2 (pBrkDir). Né de rien (contre-swing absent) retire 1 cassage via degSeq #1c. Seuil contre-swing reste relatif à tf0 (base, non-climbé).
+//   FORCE = HIÉRARCHIE D'OBJET (PAS de climb +4 — révisé : le +2 temps des cassages = force du SWING qui casse, PAS de l'empreinte ; v0uou9miWnQ 00:33:47 « FVG cassée 2× = reste son TF »). Premium vs TF de base tf0 : FVG = tf0 (temps zéro, ancre, v0uou9miWnQ 00:30:22) · Zone S/D = tf0+1 (½ temps, 00:27:57) · ABA/OB intérieur = tf0+2 (+1 temps, 00:33:00). Cohérent : ABA H1 = Zone H2 = FVG H4 (24tpbSEAXeA 01:22:49). Né de rien (contre-swing absent) −1 via degSeq #1c (S/D only).
 //   Déclencheur cassure-corps (reqCorps) + cycle de vie §T1-bis + dégradations §3.2 (#1c/#4) + polarité=localisation §4.4.
+//   SEUILS ÉPAISSEUR = 24tpbSEAXeA 01:13:06 (cours dédié, ~mai 2026, PRIME sur WO1gp3sk5U0 2026-02-23 par décision humaine R13a) : normale 0,75–1,5 · épaisse 1,5+ · très-ép 2,7+. Coûts (WO1gp3sk5U0) : normale −2 temps, épaisse −1 (00:31:51).
 //   ARBITRAGE (transcript, xFnFjopAzz8 01:53:18/55) : le 0,45 ATR qualifie la TAILLE de la FVG/zone LAISSÉE — « < 0,45 → plus rien, le marché part ».
 //   → mort par reste<0,45 DÉCOUPLÉE du nb de tapes (avant : taps≥3 ET reste<0,45 ; canon = reste<0,45 seul, dès qu'une entame consomme la zone). maxTaps ne pilote plus que le fondu.
+//   PURGE ALIVE-AWARE (maxOB) : tous les OB ACTIFS restent affichés quel que soit leur âge ; seuls les plus vieux MORTS sont purgés au-delà de maxOB (f_purge).
 indicator("OB Detector v1 — G", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500)
 
 len     = input.int(5,   "Longueur pivots (tracé)", minval=1, maxval=50, group="Tracé")
@@ -22,8 +24,8 @@ showPol = input.bool(true, "Marquer la polarité + (OB intérieurs)", group="OB"
 txtSize = input.string("Petit", "Taille du texte", options=["Petit", "Moyen", "Grand"], group="OB")
 
 gE = "Force — épaisseur × polarité (table §4.4)"
-thNorm  = input.float(0.75, "Seuil normale (×ATR)", step=0.05, group=gE)
-thEp    = input.float(1.5,  "Seuil ÉPAISSE (×ATR)", step=0.05, group=gE)
+thNorm  = input.float(0.75, "Seuil normale (×ATR) — canon 24tpbSEAXeA 01:13 : normale 0,75–1,5 (cours dédié, prime R13a)", step=0.05, group=gE)
+thEp    = input.float(1.5,  "Seuil ÉPAISSE (×ATR) — canon 24tpbSEAXeA 01:13:19 : épaisse à partir de 1,5", step=0.05, group=gE)
 thVEp   = input.float(2.7,  "Seuil TRÈS ÉPAISSE (×ATR)", step=0.05, group=gE)
 degForce= input.bool(true,  "Dégrader la force (§4.4 : extrême −2/−1/−2 · intérieur −1/0/−2)", group=gE)
 
@@ -301,9 +303,15 @@ f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool
                 degSeq := degSeq + 2
     float thick = za > 0 ? (bull ? (hi - math.min(oo, cc)) : (math.max(oo, cc) - lo)) / za : na
     string epz = na(thick) ? "?" : thick >= thVEp ? "très-ép" : thick >= thEp ? "épaisse" : thick >= thNorm ? "normale" : "fine"
-    int deg = degForce ? (epz == "épaisse" ? 2 : 4) : 0
-    int tf0f = math.min(tf0 + 4, 11)
-    int tf0e = tf0f - deg - degSeq
+    int deg = (degForce and typ == "corps") ? (epz == "épaisse" ? 2 : 4) : 0
+    // HIÉRARCHIE D'OBJET (PAS de climb +4 — le +2 temps des cassages = force du SWING qui casse, pas de l'empreinte : v0uou9miWnQ 00:33:47 FVG cassée 2× = son TF). Premium vs TF de base tf0 :
+    //   FVG = TF (temps zéro, ancre, v0uou9miWnQ 00:30:22) · Zone S/D = +½ temps = +1 index (00:27:57 « zone = demi-temps plus fort qu'une FVG ») · ABA = +1 temps = +2 index (00:33:00). Cohérent : ABA H1=Zone H2=FVG H4 (24tpbSEAXeA 01:22:49).
+    //   Dégradations (épaisseur + né-de-rien + liquidité-sous) = S/D only (FVG « ne perd pas de force », 8QoYIWwOF_I 01:20:58). FVG VIDE sans OB = VALIDITÉ, pas force.
+    int sqEff = typ == "corps" ? degSeq : 0
+    int premExt = typ == "corps" ? 1 : 0
+    int tf0fExt = math.min(tf0 + premExt, 11)
+    int tf0fInt = math.min(tf0 + 2, 11)
+    int tf0e = tf0fExt - deg - sqEff
     if showInt and not na(endBar) and not na(x1) and endBar > x1
         int   fBar = na
         float fCH  = na
@@ -330,8 +338,8 @@ f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool
             float ithick = atr233 > 0 ? (fCH - fCL) / atr233 : na
             string iepz = na(ithick) ? "?" : ithick >= thVEp ? "très-ép" : ithick >= thEp ? "épaisse" : "normale"
             int ideg = degForce ? (iepz == "épaisse" ? 0 : iepz == "très-ép" ? 4 : 2) : 0
-            int itf = tf0f - ideg - degSeq
-            string iftxt = showF ? ("  ·  " + (itf < 0 ? "<M1" : f_tfName(math.max(0, math.min(11, itf)))) + (ideg + degSeq > 0 ? " ←" + f_tfName(tf0f) : "")) : ""
+            int itf = tf0fInt - ideg - degSeq
+            string iftxt = showF ? ("  ·  " + (itf < 0 ? "<M1" : f_tfName(math.max(0, math.min(11, itf)))) + (ideg + degSeq > 0 ? " ←" + f_tfName(tf0fInt) : "")) : ""
             ib = box.new(fBar, fCH, bar_index, fCL, xloc=xloc.bar_index, bgcolor=color.new(icol, 90), border_color=color.new(icol, 55), border_style=line.style_dotted, border_width=1)
             il = label.new(bar_index + 1, (fCH + fCL) / 2.0, showLbl ? (iside + iftxt + (showPol ? "  ·  +" : "")) : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(#FFB300, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
             array.push(iobs, OB.new(ib, il, fCH, fCL, bull, icol, 90, 0, false, bull ? fCH : fCL, false))
@@ -349,7 +357,7 @@ f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool
         fillT  = isDown ? 95 : (isFvg ? 90 : 87)
         side = bull ? "BULL ▲" : "BEAR ▼"
         string fbase = tf0e < 0 ? "<M1" : f_tfName(math.max(0, math.min(11, tf0e)))
-        string fstr = fbase + (deg + degSeq > 0 ? " ←" + f_tfName(tf0f) : "")
+        string fstr = fbase + (deg + sqEff > 0 ? " ←" + f_tfName(tf0fExt) : "")
         ftxt = showF and not na(ratio) ? ("  ·  " + fstr) : ""
         txt = showLbl ? (side + ftxt) : ""
         b = box.new(x1, top, bar_index, bot, xloc=xloc.bar_index, bgcolor=color.new(base, fillT), border_color=color.new(base, isDown ? 65 : 45), border_style=bstyle, border_width=1)
