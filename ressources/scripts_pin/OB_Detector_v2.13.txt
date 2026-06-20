@@ -13,7 +13,7 @@ atrLen  = input.int(233, "ATR (SMA)", minval=1, group="Swing")
 minATR  = input.float(3.0, "Leg cassant min ×ATR", step=0.1, group="Swing")
 reqCorps= input.bool(true, "Cassure-CORPS : exiger une clôture au-delà du swing cassé (sinon = fausse cassure/mèche)", group="Swing")
 allOB   = input.bool(true, "CARTOGRAPHIE : garder les OB (sinon 1 seule)", group="OB")
-maxOB   = input.int(18, "Nb max d'OB affichés (récents) — lisibilité", minval=1, maxval=300, group="OB")
+maxOB   = input.int(18, "Plafond de purge des OB MORTS (purge ALIVE-AWARE : tous les OB ACTIFS restent affichés, quel que soit leur âge)", minval=1, maxval=300, group="OB")
 showDown= input.bool(false, "Afficher les OB micro-corps (< 0,30 ATR)", group="OB")
 keepMit = input.bool(false, "Garder les OB mitigées (estompées)", group="OB")
 showLbl = input.bool(true, "Labels", group="OB")
@@ -217,6 +217,21 @@ if array.size(spBar) > 0
             if broken
                 array.set(spBrk, q, true)
 
+// purge ALIVE-AWARE : ne retire QUE le plus ancien OB MORT ; garde TOUS les OB actifs (vivants), quel que soit leur âge. maxOB = cible de purge des morts, jamais des vivants.
+f_purge(OB[] arr) =>
+    bool keepPurging = true
+    while keepPurging and array.size(arr) > maxOB
+        int idxDel = -1
+        for ii = 0 to array.size(arr) - 1
+            if idxDel < 0 and array.get(arr, ii).dead
+                idxDel := ii
+        if idxDel < 0
+            keepPurging := false
+        if idxDel >= 0
+            old = array.remove(arr, idxDel)
+            box.delete(old.bx)
+            label.delete(old.lb)
+
 f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool bull, int endBar, float endPx) =>
     bodyR = za > 0 ? math.abs(cc - oo) / za : na
     string typ = "?"
@@ -320,10 +335,7 @@ f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool
             ib = box.new(fBar, fCH, bar_index, fCL, xloc=xloc.bar_index, bgcolor=color.new(icol, 90), border_color=color.new(icol, 55), border_style=line.style_dotted, border_width=1)
             il = label.new(bar_index + 1, (fCH + fCL) / 2.0, showLbl ? (iside + iftxt + (showPol ? "  ·  +" : "")) : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(#FFB300, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
             array.push(iobs, OB.new(ib, il, fCH, fCL, bull, icol, 90, 0, false, bull ? fCH : fCL, false))
-            while array.size(iobs) > maxOB
-                old = array.shift(iobs)
-                box.delete(old.bx)
-                label.delete(old.lb)
+            f_purge(iobs)
     base = typ == "gris" ? griCol : (bull ? demCol : supCol)
     if not allOB
         while array.size(obs) > 0
@@ -343,10 +355,7 @@ f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool
         b = box.new(x1, top, bar_index, bot, xloc=xloc.bar_index, bgcolor=color.new(base, fillT), border_color=color.new(base, isDown ? 65 : 45), border_style=bstyle, border_width=1)
         l = label.new(bar_index + 1, (top + bot) / 2.0, txt, xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(base, isDown ? 45 : 12), style=label.style_label_left, size=tSize, textalign=text.align_left)
         array.push(obs, OB.new(b, l, top, bot, bull, base, fillT, 0, false, bull ? top : bot, false))
-        while array.size(obs) > maxOB
-            old = array.shift(obs)
-            box.delete(old.bx)
-            label.delete(old.lb)
+        f_purge(obs)
 
 if not na(ph)
     isNew = sDir != 1
