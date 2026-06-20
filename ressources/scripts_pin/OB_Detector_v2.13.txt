@@ -32,7 +32,7 @@ degForce= input.bool(true,  "Dégrader la force (§4.4 : extrême −2/−1/−2
 gL = "Dégradations séquence — liquidité / contre-swing (§3.2 · doctrine)"
 useSeqDeg = input.bool(true, "Dégrader la base : contre-swing absent + liquidité sous (−1 chacune)", group=gL)
 csNoise   = input.float(1.0, "Contre-swing : taille mini ×ATR (plancher « ~1 cm »)", step=0.1, group=gL)
-liqAbove  = input.bool(false, "Inclure « liquidité au-dessus » (#2 DIFFÉRÉ : recouvre #4 sur BEAR)", group=gL)
+liqAbove  = input.bool(false, "Inclure « liquidité au-dessus » (nord) — PLAFONNÉ avec liquidité-sous : JAMAIS cumulé (canon 6eL9OUdSc94 « une seule fois »). OFF = côté balayage seul (continuation côté cible, canon muet)", group=gL)
 
 gV = "Cycle de vie — mitigation (§T1-bis · doctrine)"
 useLife = input.bool(true, "Cycle de vie : compteur de tapes + désactivation", group=gV)
@@ -306,18 +306,16 @@ f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool
                     else if (not bull) and array.get(spHi, q) and array.get(spPx, q) > hi
                         liqSous := true
                         liqBar  := array.get(spBar, q)
-        if liqSous
+        // LIQUIDITÉ = UNE SEULE dégradation (−1), JAMAIS cumulée — canon « la séquence se lit sur deux temps » (6eL9OUdSc94 00:29:45 « Absolument pas »). liqSous (côté balayage) + liqUp (nord, optionnel) PLAFONNÉS à un seul −1 : activer liqAbove ne double-compte PLUS (sur BEAR = MÊME liquidité physique que liqSous).
+        bool liqUp = false
+        if liqAbove and not liqSous and array.size(spBar) > 0
+            for q = 0 to array.size(spBar) - 1
+                if not liqUp and array.get(spHi, q) and (not array.get(spBrk, q)) and array.get(spPx, q) > top and (na(liqBar) or array.get(spBar, q) != liqBar)
+                    float sr = array.get(spRat, q)
+                    if not na(sr) and f_idxFromATR(sr) >= tf0
+                        liqUp := true
+        if liqSous or liqUp
             degSeq := degSeq + 2
-        if liqAbove
-            bool liqUp = false
-            if array.size(spBar) > 0
-                for q = 0 to array.size(spBar) - 1
-                    if not liqUp and array.get(spHi, q) and (not array.get(spBrk, q)) and array.get(spPx, q) > top and (na(liqBar) or array.get(spBar, q) != liqBar)
-                        float sr = array.get(spRat, q)
-                        if not na(sr) and f_idxFromATR(sr) >= tf0
-                            liqUp := true
-            if liqUp
-                degSeq := degSeq + 2
     float thick = za > 0 ? (bull ? (hi - math.min(oo, cc)) : (math.max(oo, cc) - lo)) / za : na
     string epz = na(thick) ? "?" : thick >= thVEp ? "très-ép" : thick >= thEp ? "épaisse" : thick >= thNorm ? "normale" : "fine"
     int deg = (degForce and typ == "corps") ? (epz == "épaisse" ? 2 : 4) : 0
