@@ -1,7 +1,7 @@
 //@version=6
-// OB DETECTOR v2.13 (revert v2.14) — FORCE : (plus petit des 2 swings du 1-2) + 2 temps (1-2) − dégradations. cartographie.py N'EST PAS une référence canon.
+// OB DETECTOR v2.13 (revert v2.14) — FORCE : (plus petit des 2 swings du 1-2) + 2 temps (climb 1-2) − dégradations (S/D only). FVG = exception (temps zéro, ni climb ni dégradation). cartographie.py N'EST PAS une référence canon.
 //   BASE = f_idxFromATR(min(pBrkR, h)) = le plus petit des 2 swings du 1-2 (24tpbSEAXeA 00:13:40, WO1gp3sk5U0 00:41:29). pBrkR = jambe cassure-1, h = jambe cassure-2.
-//   FORCE = HIÉRARCHIE D'OBJET (PAS de climb +4 — révisé : le +2 temps des cassages = force du SWING qui casse, PAS de l'empreinte ; v0uou9miWnQ 00:33:47 « FVG cassée 2× = reste son TF »). Premium vs TF de base tf0 : FVG = tf0 (temps zéro, ancre, v0uou9miWnQ 00:30:22) · Zone S/D = tf0+1 (½ temps, 00:27:57) · ABA/OB intérieur = tf0+2 (+1 temps, 00:33:00). Cohérent : ABA H1 = Zone H2 = FVG H4 (24tpbSEAXeA 01:22:49). Né de rien (contre-swing absent) −1 via degSeq #1c (S/D only).
+//   FORCE = base tf0 (plus petit des 2 swings) + CLIMB (1-2 = +2 temps = +4 demi-paliers) − dégradations. STRUCTURE prouvée par 35 calculs chiffrés Garry (un cassage = +1 temps = +2 crans ; 1-2 = +4). EXCEPTION FVG = temps zéro : pas de climb, pas de dégradation (v0uou9miWnQ 00:33:47 ; 8QoYIWwOF_I 01:20:58). Échelle = cascade demi-paliers, paires d'énergie {D1,H8}{H4,H2}{H1,M30}{M15,M8}{M5,M3}. PRINCIPE (6eL9OUdSc94 00:43:01-31, Garry catégorique) : une FORCE saute les demi-temps → se déplace par TEMPS PLEIN (2 crans) en gardant la PARITÉ de la base (base pleine pair → force pleine ; base demi impair → force demi ; « H2 c'est pas possible » depuis une base pleine). Respecté ici : climb +4 + deg/sqEff ∈ {0,2,4} = pas TOUS pairs → parité conservée. (Les « contradictions M30×2 / D1−2 » d'un dig étaient du bruit : 1 mauvaise citation + 1 réponse d'audience rejetée par Garry, PAS le canon.)
 //   Déclencheur cassure-corps (reqCorps) + cycle de vie §T1-bis + dégradations §3.2 (#1c/#4) + polarité=localisation §4.4.
 //   SEUILS ÉPAISSEUR = 24tpbSEAXeA 01:13:06 (cours dédié, ~mai 2026, PRIME sur WO1gp3sk5U0 2026-02-23 par décision humaine R13a) : normale 0,75–1,5 · épaisse 1,5+ · très-ép 2,7+. Coûts (WO1gp3sk5U0) : normale −2 temps, épaisse −1 (00:31:51).
 //   ARBITRAGE (transcript, xFnFjopAzz8 01:53:18/55) : le 0,45 ATR qualifie la TAILLE de la FVG/zone LAISSÉE — « < 0,45 → plus rien, le marché part ».
@@ -304,13 +304,12 @@ f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool
     float thick = za > 0 ? (bull ? (hi - math.min(oo, cc)) : (math.max(oo, cc) - lo)) / za : na
     string epz = na(thick) ? "?" : thick >= thVEp ? "très-ép" : thick >= thEp ? "épaisse" : thick >= thNorm ? "normale" : "fine"
     int deg = (degForce and typ == "corps") ? (epz == "épaisse" ? 2 : 4) : 0
-    // HIÉRARCHIE D'OBJET (PAS de climb +4 — le +2 temps des cassages = force du SWING qui casse, pas de l'empreinte : v0uou9miWnQ 00:33:47 FVG cassée 2× = son TF). Premium vs TF de base tf0 :
-    //   FVG = TF (temps zéro, ancre, v0uou9miWnQ 00:30:22) · Zone S/D = +½ temps = +1 index (00:27:57 « zone = demi-temps plus fort qu'une FVG ») · ABA = +1 temps = +2 index (00:33:00). Cohérent : ABA H1=Zone H2=FVG H4 (24tpbSEAXeA 01:22:49).
-    //   Dégradations (épaisseur + né-de-rien + liquidité-sous) = S/D only (FVG « ne perd pas de force », 8QoYIWwOF_I 01:20:58). FVG VIDE sans OB = VALIDITÉ, pas force.
+    // FORCE = base tf0 + CLIMB (1-2 = +2 temps = +4 demi-paliers) − dégradations. STRUCTURE prouvée par 35 calculs chiffrés de Garry (climb : wQcK70KLTjw 00:19:17 « H2 casse 2× = D2 », v0uou9miWnQ 00:27:30 « H4 casse 1× = D1 » ; cumul : xFnFjopAzz8 00:30:59 « H8 −2 = M30 »).
+    //   EXCEPTION FVG = « temps zéro » : PAS de climb, PAS de dégradation (v0uou9miWnQ 00:33:47 « FVG cassée 2× = reste son TF » ; 8QoYIWwOF_I 01:20:58 « la FVG ne perd pas de force »). 1 cassage = +1 temps = +2 crans (cf. paires d'énergie {D1,H8}{H4,H2}{H1,M30}{M15,M8}{M5,M3}).
+    //   Dégradations (épaisseur §4.4 polarité-dépendante + né-de-rien + liquidité-sous) = S/D (corps) uniquement. OB extrême = polarité NÉGATIVE (normale −2 temps via deg=4) ; OB intérieur = polarité POSITIVE (normale −1 via ideg=2) → intérieur plus fort que l'extrême (« positif perd moins »).
     int sqEff = typ == "corps" ? degSeq : 0
-    int premExt = typ == "corps" ? 1 : 0
-    int tf0fExt = math.min(tf0 + premExt, 11)
-    int tf0fInt = math.min(tf0 + 2, 11)
+    int tf0fExt = typ == "FVG" ? tf0 : math.min(tf0 + 4, 11)
+    int tf0fInt = math.min(tf0 + 4, 11)
     int tf0e = tf0fExt - deg - sqEff
     if showInt and not na(endBar) and not na(x1) and endBar > x1
         int   fBar = na
