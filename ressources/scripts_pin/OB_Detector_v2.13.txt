@@ -38,6 +38,7 @@ gV = "Cycle de vie — mitigation (§T1-bis · doctrine)"
 useLife = input.bool(true, "Cycle de vie : compteur de tapes + désactivation", group=gV)
 maxTaps = input.int(3, "Tapes : palier de saturation du fondu (la MORT ne dépend plus du nb de tapes — canon xFnFjopAzz8)", minval=1, maxval=10, group=gV)
 thReste = input.float(0.45, "Reste min après entame (×ATR) — zone/FVG laissée ; sinon mort (canon xFnFjopAzz8)", step=0.05, group=gV)
+useDesact = input.bool(true, "DÉSACTIVATION en force : OB tapé (désactivé) perd −2 forces au retour (jeu normal — aNdmUXqCHfw 00:55:36 ; institutionnel/ABA = −1 non détecté → défaut −2)", group=gV)
 
 gM = "Multi-TF (fondation TF−0,5)"
 useMTF  = input.bool(true, "Activer le multi-TF (TF−0,5)", group=gM)
@@ -169,6 +170,8 @@ type OB
     bool  inside
     float ext
     bool  dead
+    int   f0
+    bool  desact
 
 var OB[] obs  = array.new<OB>()
 var OB[] iobs = array.new<OB>()
@@ -413,7 +416,7 @@ f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool
         string iftxt = showF ? ("  ·  " + (itf < 0 ? "<M1" : f_tfName(math.max(0, math.min(11, itf)))) + (ideg + degSeq > 0 ? " ←" + f_tfName(tf0fInt) : "")) : ""
         ib = box.new(fBar, fCH, bar_index, fCL, xloc=xloc.bar_index, bgcolor=color.new(icol, 90), border_color=color.new(icol, 55), border_style=line.style_dotted, border_width=1)
         il = label.new(bar_index + 1, (fCH + fCL) / 2.0, showLbl ? (iside + iftxt + (showPol ? "  ·  +" : "")) : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(#FFB300, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
-        array.push(iobs, OB.new(ib, il, fCH, fCL, bull, icol, 90, 0, false, bull ? fCH : fCL, false))
+        array.push(iobs, OB.new(ib, il, fCH, fCL, bull, icol, 90, 0, false, bull ? fCH : fCL, false, itf, false))
         f_purge(iobs)
     base = typ == "gris" ? griCol : (bull ? demCol : supCol)
     if not allOB
@@ -433,7 +436,7 @@ f_OB(int x1, float hi, float lo, float oo, float cc, float za, float ratio, bool
         txt = showLbl ? (side + ftxt) : ""
         b = box.new(x1, top, bar_index, bot, xloc=xloc.bar_index, bgcolor=color.new(base, fillT), border_color=color.new(base, isDown ? 65 : 45), border_style=bstyle, border_width=1)
         l = label.new(bar_index + 1, (top + bot) / 2.0, txt, xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(base, isDown ? 45 : 12), style=label.style_label_left, size=tSize, textalign=text.align_left)
-        array.push(obs, OB.new(b, l, top, bot, bull, base, fillT, 0, false, bull ? top : bot, false))
+        array.push(obs, OB.new(b, l, top, bot, bull, base, fillT, 0, false, bull ? top : bot, false, tf0e, false))
         f_purge(obs)
 
 if not na(ph)
@@ -558,6 +561,11 @@ f_life(OB o) =>
             if useLife and o.taps > 0
                 int fade = math.min(math.round(o.taps * 9.0 / maxTaps), 9)
                 box.set_bgcolor(o.bx, color.new(o.col, math.min(o.fill + fade, 96)))
+            // DÉSACTIVATION EN FORCE : OB tapé (désactivé) → perd −2 forces au retour (jeu normal, aNdmUXqCHfw 00:55:36). Force RECALCULÉE dynamiquement, une fois (flag desact). NB : taps≥1 = tapé/désactivé (lecture cartographie : la zone vaut désormais −2 si re-tradée).
+            if useDesact and o.taps >= 1 and not o.desact
+                o.desact := true
+                int fdes = o.f0 - 2
+                label.set_text(o.lb, showLbl ? ((o.bull ? "BULL ▲" : "BEAR ▼") + "  ·  " + (fdes < 0 ? "<M1" : f_tfName(math.max(0, math.min(11, fdes)))) + " ⊘désact") : "")
 
 if barstate.isconfirmed
     if array.size(obs) > 0
