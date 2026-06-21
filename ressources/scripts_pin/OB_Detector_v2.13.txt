@@ -38,7 +38,7 @@ gV = "Cycle de vie — mitigation (§T1-bis · doctrine)"
 useLife = input.bool(true, "Cycle de vie : compteur de tapes + désactivation", group=gV)
 maxTaps = input.int(3, "Tapes : palier de saturation du fondu (la MORT ne dépend plus du nb de tapes — canon xFnFjopAzz8)", minval=1, maxval=10, group=gV)
 thReste = input.float(0.45, "Reste min après entame (×ATR) — zone/FVG laissée ; sinon mort (canon xFnFjopAzz8)", step=0.05, group=gV)
-useDesact = input.bool(true, "DÉSACTIVATION en force : OB tapé (désactivé) perd −2 forces au retour (jeu normal — aNdmUXqCHfw 00:55:36 ; institutionnel/ABA = −1 non détecté → défaut −2)", group=gV)
+useDesact = input.bool(true, "DÉSACTIVATION en force : OB tapé (désactivé) au retour perd −4 crans (jeu normal « perd 2 fois », aNdmUXqCHfw 00:55:36) ; ABA = −2 (institutionnel TF+1, perd 1 fois) ; WB = −4 (zone normale)", group=gV)
 
 gM = "Multi-TF (fondation TF−0,5)"
 useMTF  = input.bool(true, "Activer le multi-TF (TF−0,5)", group=gM)
@@ -52,10 +52,11 @@ useChain = input.bool(true, "Faux-swing : rabaisser la base au DERNIER maillon c
 showChain= input.bool(false, "Debug : marquer ⚠ les bases « faux-swing » rabaissées", group=gC)
 
 gA = "ABA — base = milieu (opposé) d'une 5 barres"
-useABA  = input.bool(true, "SCAN ABA : la BASE = la BOUGIE DU MILIEU d'une 5 barres, OPPOSÉE aux 4 bougies d'accélération (2 même sens · base opposée · 2 même sens) = l'OB. Détection + tag ; force/désact DIFFÉRÉES. (prouvé 18/06 14:30 UTC : bear·bear·BULL·bear·bear)", group=gA)
+useABA  = input.bool(true, "SCAN ABA : la BASE = la BOUGIE DU MILIEU d'une 5 barres, OPPOSÉE aux 4 bougies d'accélération (2 même sens · base opposée · 2 même sens) = l'OB. Force CÂBLÉE = TF+1 (chartIdx+2, institutionnel), désact −2. (prouvé 18/06 14:30 UTC : bear·bear·BULL·bear·bear)", group=gA)
+useAbaFine = input.bool(true, "AFFINAGE TF−0,5 : si la base ABA est ÉPAISSE (≥ seuil épaisse thEp) descendre d'un demi-temps et resserrer la zone sur la « base dans la base » (sous-bougie petit corps + longues mèches, mèches comprises) ; si AUCUNE sous-base en TF−0,5 → garder la base du TF courant. Canon FQO8F7WmlGY 12:18-15:49 (« trop épais → descendre d'un demi-temps »). 1 demi-temps (récursion différée). Marqueur ⤓.", group=gA)
 
-gW = "WICK BLOCK — gap entre 2 mèches du même côté (vidéo FQO8F7WmlGY)"
-useWick = input.bool(true, "SCAN WICK BLOCK : gap entre 2 mèches du même côté (INVERSE du FVG = la mèche nue, pas le corps). Haussier = 2 mèches basses (recouvrement sous les corps) ; baissier = 2 mèches hautes. Force = TF du swing (différée). Tag WB.", group=gW)
+gW = "WICK BLOCK — mèche nue (vidéo FQO8F7WmlGY)"
+useWick = input.bool(true, "SCAN WICK BLOCK : zone = la MÈCHE NUE (l'espace de la mèche, JAMAIS le corps). Haussier = mèche(s) basse(s) bas-corps→bas-mèche ; baissier = mèche(s) haute(s) ; 2 bougies adjacentes = enveloppe des 2 mèches ; aucune condition d'overlap. Force CÂBLÉE = TF du swing observé = chartIdx (normal, ni +1 ni −1). Tag WB.", group=gW)
 wbWick  = input.float(0.5, "Mèche min de chaque bougie (×ATR) — « énorme mèche » canon FQO8F7WmlGY", step=0.05, group=gW)
 
 gS = "Style"
@@ -131,6 +132,11 @@ f_subIdx(float ratio) =>
 tfLowIdx = math.max(chartIdx - 1, 0)
 tfLowRes = f_tfRes(tfLowIdx)
 [phLow, plLow] = request.security(syminfo.tickerid, tfLowRes, [ta.pivothigh(high, plenL, plenL), ta.pivotlow(low, plenL, plenL)], lookahead=barmerge.lookahead_off)
+// AFFINAGE ABA TF−0,5 : sous-bougies du demi-temps inférieur (tfLowRes = chartIdx−1) DE LA BARRE COURANTE (arrays intrabar). request.security_lower_tf = outil Pine v6 dédié au TF inférieur ; appel scope global sur la barre courante → PAS d'accès historique (le résumé « sous-base » est stocké par barre dans cSubHi/cSubLo, lu plus tard à l'index de la base ABA).
+ltfO = request.security_lower_tf(syminfo.tickerid, tfLowRes, open)
+ltfH = request.security_lower_tf(syminfo.tickerid, tfLowRes, high)
+ltfL = request.security_lower_tf(syminfo.tickerid, tfLowRes, low)
+ltfC = request.security_lower_tf(syminfo.tickerid, tfLowRes, close)
 
 var int   sDir = 0
 var float curPx = na
@@ -216,6 +222,8 @@ var float[] cO   = array.new_float()
 var float[] cH   = array.new_float()
 var float[] cL   = array.new_float()
 var float[] cC   = array.new_float()
+var float[] cSubHi = array.new_float()
+var float[] cSubLo = array.new_float()
 if barstate.isconfirmed
     array.push(cDir, close > open ? 1 : close < open ? -1 : 0)
     array.push(cRng, atr233 > 0 ? (high - low) / atr233 : 0.0)
@@ -224,6 +232,28 @@ if barstate.isconfirmed
     array.push(cH, high)
     array.push(cL, low)
     array.push(cC, close)
+    // SOUS-BASE TF−0,5 de CETTE barre (pour l'affinage ABA) : parmi les sous-bougies du demi-temps inférieur, retenir la plus « base » = petit corps + longues mèches des 2 côtés (corps < mèche haute ET corps < mèche basse), corps/range minimal. [na ; na] si aucune ne qualifie → l'ABA gardera le TF courant.
+    float sbHi = na
+    float sbLo = na
+    float sbBest = na
+    int nsub = array.size(ltfL)
+    if nsub > 0
+        for si = 0 to nsub - 1
+            float so = array.get(ltfO, si)
+            float sc = array.get(ltfC, si)
+            float sh = array.get(ltfH, si)
+            float sl = array.get(ltfL, si)
+            float sbd = math.abs(sc - so)
+            float suw = sh - math.max(so, sc)
+            float slw = math.min(so, sc) - sl
+            if sbd < suw and sbd < slw and (sh - sl) > 0
+                float rr = sbd / (sh - sl)
+                if na(sbBest) or rr < sbBest
+                    sbBest := rr
+                    sbHi := sh
+                    sbLo := sl
+    array.push(cSubHi, sbHi)
+    array.push(cSubLo, sbLo)
     if array.size(cDir) > 5000
         array.shift(cDir)
         array.shift(cRng)
@@ -232,6 +262,8 @@ if barstate.isconfirmed
         array.shift(cH)
         array.shift(cL)
         array.shift(cC)
+        array.shift(cSubHi)
+        array.shift(cSubLo)
 
 var int[]   spBar = array.new_int()
 var float[] spPx  = array.new_float()
@@ -660,12 +692,21 @@ if useABA and barstate.isconfirmed
                 lastAbaBar := baseBar
                 float bHi = array.get(cH, bestM)
                 float bLo = array.get(cL, bestM)
+                // AFFINAGE TF−0,5 (canon FQO8F7WmlGY 13:55 « cet OB est trop épais → on descend d'un demi-temps… une base dans la base ») : si la base est ÉPAISSE (≥ thEp ATR — on n'affine PAS les bases fines = « il ne faut pas surraffiner ») ET qu'une sous-base existe au demi-temps inférieur ET strictement incluse dans la base → resserrer dessus (mèches comprises). Sinon (sous-base absente, ou base fine) → GARDER la base du TF courant (règle humaine 2026-06-21). 1 demi-temps (récursion + filtre anti-piège « gros swing » différés).
+                bool abaFine = false
+                if useAbaFine and atr233 > 0 and (bHi - bLo) / atr233 >= thEp
+                    float sH = array.get(cSubHi, bestM)
+                    float sL = array.get(cSubLo, bestM)
+                    if not na(sH) and not na(sL) and sH > sL and sH <= bHi and sL >= bLo
+                        bHi := sH
+                        bLo := sL
+                        abaFine := true
                 // FORCE ABA = TF observé +1 temps = +2 crans (canon aba.md aba_force_tf_plus_1, TC-2 fermé : 5 ex. chiffrés H4→D1, H1→H4, M30→H2). SANS climb (source de force autonome). Base = bougie du chart < 4 ATR → tf0 = chartIdx. Désact −2 (institutionnel, o.aba=true).
                 int abaF = math.min(chartIdx + 2, 11)
                 color acol = bestBull ? demCol : supCol
                 string aside = bestBull ? "BULL ▲" : "BEAR ▼"
                 box ab = box.new(baseBar, bHi, bar_index, bLo, xloc=xloc.bar_index, bgcolor=color.new(acol, 75), border_color=color.new(acol, 10), border_style=line.style_solid, border_width=2)
-                label al = label.new(bar_index + 1, (bHi + bLo) / 2.0, showLbl ? (aside + (showF ? "  ·  " + f_tfName(abaF) : "") + "  ·  ABA") : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(acol, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
+                label al = label.new(bar_index + 1, (bHi + bLo) / 2.0, showLbl ? (aside + (showF ? "  ·  " + f_tfName(abaF) : "") + "  ·  ABA" + (abaFine ? " ⤓" : "")) : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(acol, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
                 array.push(obs, OB.new(ab, al, bHi, bLo, bestBull, acol, 75, 0, false, bestBull ? bHi : bLo, false, abaF, false, true))
                 f_purge(obs)
 
