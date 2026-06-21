@@ -54,6 +54,10 @@ showChain= input.bool(false, "Debug : marquer ⚠ les bases « faux-swing » rab
 gA = "ABA — base = milieu (opposé) d'une 5 barres"
 useABA  = input.bool(true, "SCAN ABA : la BASE = la BOUGIE DU MILIEU d'une 5 barres, OPPOSÉE aux 4 bougies d'accélération (2 même sens · base opposée · 2 même sens) = l'OB. Détection + tag ; force/désact DIFFÉRÉES. (prouvé 18/06 14:30 UTC : bear·bear·BULL·bear·bear)", group=gA)
 
+gW = "WICK BLOCK — gap entre 2 mèches du même côté (vidéo FQO8F7WmlGY)"
+useWick = input.bool(true, "SCAN WICK BLOCK : gap entre 2 mèches du même côté (INVERSE du FVG = la mèche nue, pas le corps). Haussier = 2 mèches basses (recouvrement sous les corps) ; baissier = 2 mèches hautes. Force = TF du swing (différée). Tag WB.", group=gW)
+wbWick  = input.float(0.5, "Mèche min de chaque bougie (×ATR) — « énorme mèche » canon FQO8F7WmlGY", step=0.05, group=gW)
+
 gS = "Style"
 demCol  = input.color(#089981, "Demande", group=gS)
 supCol  = input.color(#F23645, "Offre", group=gS)
@@ -660,6 +664,62 @@ if useABA and barstate.isconfirmed
                 box ab = box.new(baseBar, bHi, bar_index, bLo, xloc=xloc.bar_index, bgcolor=color.new(acol, 75), border_color=color.new(acol, 10), border_style=line.style_solid, border_width=2)
                 label al = label.new(bar_index + 1, (bHi + bLo) / 2.0, showLbl ? (aside + "  ·  ABA") : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(acol, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
                 array.push(obs, OB.new(ab, al, bHi, bLo, bestBull, acol, 75, 0, false, bestBull ? bHi : bLo, false, 0, false, true))
+                f_purge(obs)
+
+// ===== SCAN WICK BLOCK — la zone = la MÈCHE NUE, JAMAIS le corps (canon FQO8F7WmlGY 09:02-09:34, re-dig 2026-06-21 : « une OU deux bougies ayant laissé une énorme mèche », « le gap laissé entre les bas des deux bougies », « pas dans le corps mais l'espace laissé entre les deux mèches » ; frame 00:24 = box ancrée sur la mèche basse, AUCUN chevauchement). INVERSE du FVG (corps nu → mèche nue). Haussier = mèche(s) BASSE(S) : zone = bas-corps→bas-mèche (1 bougie) ou ENVELOPPE des 2 mèches nues (2 bougies adjacentes). Baissier = mèche(s) HAUTE(S), symétrique. CONDITION D'OVERLAP SUPPRIMÉE (canon « aucun chevauchement » : l'enveloppe couvre gap ET contact). Bornes confirmées humain 2026-06-21. Force = TF du swing (différée v1). Tag WB. =====
+var int lastWbBar = na
+if useWick and barstate.isconfirmed
+    int szw = array.size(cBar)
+    if szw >= 1
+        int wlo = math.max(0, szw - 16)
+        int bestBar = na
+        bool wbBull = false
+        float wbTop = na
+        float wbBot = na
+        float aw = atr233 > 0 ? atr233 : 1.0
+        for b = wlo to szw - 1
+            float blB = math.min(array.get(cO, b), array.get(cC, b))
+            float bhB = math.max(array.get(cO, b), array.get(cC, b))
+            float lwB = blB - array.get(cL, b)
+            float uwB = array.get(cH, b) - bhB
+            // haussier : longue mèche basse = mèche nue [bas-mèche ; bas-corps] ; 2 bougies adjacentes → enveloppe
+            if lwB >= wbWick * aw
+                float zTop = blB
+                float zBot = array.get(cL, b)
+                int xb = array.get(cBar, b)
+                if b > wlo
+                    float blA = math.min(array.get(cO, b - 1), array.get(cC, b - 1))
+                    if blA - array.get(cL, b - 1) >= wbWick * aw
+                        zTop := math.max(blA, blB)
+                        zBot := math.min(array.get(cL, b - 1), array.get(cL, b))
+                        xb := array.get(cBar, b - 1)
+                bestBar := xb
+                wbBull := true
+                wbTop := zTop
+                wbBot := zBot
+            // baissier : longue mèche haute = mèche nue [haut-corps ; haut-mèche] ; 2 bougies adjacentes → enveloppe
+            else if uwB >= wbWick * aw
+                float zBot2 = bhB
+                float zTop2 = array.get(cH, b)
+                int xb2 = array.get(cBar, b)
+                if b > wlo
+                    float bhA = math.max(array.get(cO, b - 1), array.get(cC, b - 1))
+                    if array.get(cH, b - 1) - bhA >= wbWick * aw
+                        zTop2 := math.max(array.get(cH, b - 1), array.get(cH, b))
+                        zBot2 := math.min(bhA, bhB)
+                        xb2 := array.get(cBar, b - 1)
+                bestBar := xb2
+                wbBull := false
+                wbTop := zTop2
+                wbBot := zBot2
+        if not na(bestBar)
+            if na(lastWbBar) or bestBar != lastWbBar
+                lastWbBar := bestBar
+                color wcol = wbBull ? demCol : supCol
+                string wside = wbBull ? "BULL ▲" : "BEAR ▼"
+                box wbx = box.new(bestBar, wbTop, bar_index, wbBot, xloc=xloc.bar_index, bgcolor=color.new(wcol, 78), border_color=color.new(wcol, 10), border_style=line.style_dashed, border_width=2)
+                label wlb = label.new(bar_index + 1, (wbTop + wbBot) / 2.0, showLbl ? (wside + "  ·  WB") : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(wcol, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
+                array.push(obs, OB.new(wbx, wlb, wbTop, wbBot, wbBull, wcol, 78, 0, false, wbBull ? wbTop : wbBot, false, 0, false, true))
                 f_purge(obs)
 
 if barstate.isconfirmed
