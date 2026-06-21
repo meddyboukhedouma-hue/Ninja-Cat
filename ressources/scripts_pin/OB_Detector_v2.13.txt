@@ -626,14 +626,15 @@ f_life(OB o) =>
             if useLife and o.taps > 0
                 int fade = math.min(math.round(o.taps * 9.0 / maxTaps), 9)
                 box.set_bgcolor(o.bx, color.new(o.col, math.min(o.fill + fade, 96)))
-            // DÉSACTIVATION EN FORCE : OB tapé (désactivé) → perd −2 forces au retour (jeu normal, aNdmUXqCHfw 00:55:36). Force RECALCULÉE dynamiquement, une fois (flag desact). NB : taps≥1 = tapé/désactivé (lecture cartographie : la zone vaut désormais −2 si re-tradée).
-            if useDesact and o.taps >= 1 and not o.desact and not o.aba
+            // DÉSACTIVATION EN FORCE (canon force-energie.md desactivation_jeu_normal_perd_deux_fois_force ; calibr. « 1 fois = 1 temps = 2 crans » aNdmUXqCHfw 00:56:23 « D1 perd 2 fois → H1 ») : jeu NORMAL désactivé perd DEUX fois = −4 crans ; jeu INSTITUTIONNEL (ABA = TF+1, flag o.aba) perd UNE fois = −2 crans (compense son +1 de base). WB = zone NORMALE (o.aba=false → −4). Force recalculée une fois (flag desact). taps≥1 = tapé/désactivé.
+            if useDesact and o.taps >= 1 and not o.desact
                 o.desact := true
-                int fdes = o.f0 - 2
+                int pen = o.aba ? 2 : 4
+                int fdes = o.f0 - pen
                 label.set_text(o.lb, showLbl ? ((o.bull ? "BULL ▲" : "BEAR ▼") + "  ·  " + (fdes < 0 ? "<M1" : f_tfName(math.max(0, math.min(11, fdes)))) + " ⊘désact") : "")
 
 // ===== SCAN ABA — la BASE = la BOUGIE DU MILIEU d'une 5 barres (humain 2026-06-21) =====
-// 5 barres = 1-2-3-4-5 ; la BASE = la bougie 3 (LE MILIEU). Règle positionnelle : 2 bougies d'accélération MÊME SENS (D) AVANT le milieu + la BASE (milieu, sens libre = la pause/opposée isolée tolérée par le canon 5-barres) + 2 bougies d'accélération MÊME SENS (D) APRÈS. La base (milieu) = l'OB, tracée low-to-high mèches comprises (cH[m]/cL[m]). Force/désact DIFFÉRÉES (v1). Dédup via lastAbaBar.
+// 5 barres = 1-2-3-4-5 ; la BASE = la bougie 3 (LE MILIEU). Règle positionnelle : 2 bougies d'accélération MÊME SENS (D) AVANT le milieu + la BASE (milieu, sens libre = la pause/opposée isolée tolérée par le canon 5-barres) + 2 bougies d'accélération MÊME SENS (D) APRÈS. La base (milieu) = l'OB, tracée low-to-high mèches comprises (cH[m]/cL[m]). Force CÂBLÉE = chartIdx+2 (TF+1, institutionnel) ; désact −2. Dédup via lastAbaBar.
 var int lastAbaBar = na
 if useABA and barstate.isconfirmed
     int szc = array.size(cBar)
@@ -659,14 +660,16 @@ if useABA and barstate.isconfirmed
                 lastAbaBar := baseBar
                 float bHi = array.get(cH, bestM)
                 float bLo = array.get(cL, bestM)
+                // FORCE ABA = TF observé +1 temps = +2 crans (canon aba.md aba_force_tf_plus_1, TC-2 fermé : 5 ex. chiffrés H4→D1, H1→H4, M30→H2). SANS climb (source de force autonome). Base = bougie du chart < 4 ATR → tf0 = chartIdx. Désact −2 (institutionnel, o.aba=true).
+                int abaF = math.min(chartIdx + 2, 11)
                 color acol = bestBull ? demCol : supCol
                 string aside = bestBull ? "BULL ▲" : "BEAR ▼"
                 box ab = box.new(baseBar, bHi, bar_index, bLo, xloc=xloc.bar_index, bgcolor=color.new(acol, 75), border_color=color.new(acol, 10), border_style=line.style_solid, border_width=2)
-                label al = label.new(bar_index + 1, (bHi + bLo) / 2.0, showLbl ? (aside + "  ·  ABA") : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(acol, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
-                array.push(obs, OB.new(ab, al, bHi, bLo, bestBull, acol, 75, 0, false, bestBull ? bHi : bLo, false, 0, false, true))
+                label al = label.new(bar_index + 1, (bHi + bLo) / 2.0, showLbl ? (aside + (showF ? "  ·  " + f_tfName(abaF) : "") + "  ·  ABA") : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(acol, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
+                array.push(obs, OB.new(ab, al, bHi, bLo, bestBull, acol, 75, 0, false, bestBull ? bHi : bLo, false, abaF, false, true))
                 f_purge(obs)
 
-// ===== SCAN WICK BLOCK — la zone = la MÈCHE NUE, JAMAIS le corps (canon FQO8F7WmlGY 09:02-09:34, re-dig 2026-06-21 : « une OU deux bougies ayant laissé une énorme mèche », « le gap laissé entre les bas des deux bougies », « pas dans le corps mais l'espace laissé entre les deux mèches » ; frame 00:24 = box ancrée sur la mèche basse, AUCUN chevauchement). INVERSE du FVG (corps nu → mèche nue). Haussier = mèche(s) BASSE(S) : zone = bas-corps→bas-mèche (1 bougie) ou ENVELOPPE des 2 mèches nues (2 bougies adjacentes). Baissier = mèche(s) HAUTE(S), symétrique. CONDITION D'OVERLAP SUPPRIMÉE (canon « aucun chevauchement » : l'enveloppe couvre gap ET contact). Bornes confirmées humain 2026-06-21. Force = TF du swing (différée v1). Tag WB. =====
+// ===== SCAN WICK BLOCK — la zone = la MÈCHE NUE, JAMAIS le corps (canon FQO8F7WmlGY 09:02-09:34, re-dig 2026-06-21 : « une OU deux bougies ayant laissé une énorme mèche », « le gap laissé entre les bas des deux bougies », « pas dans le corps mais l'espace laissé entre les deux mèches » ; frame 00:24 = box ancrée sur la mèche basse, AUCUN chevauchement). INVERSE du FVG (corps nu → mèche nue). Haussier = mèche(s) BASSE(S) : zone = bas-corps→bas-mèche (1 bougie) ou ENVELOPPE des 2 mèches nues (2 bougies adjacentes). Baissier = mèche(s) HAUTE(S), symétrique. CONDITION D'OVERLAP SUPPRIMÉE (canon « aucun chevauchement » : l'enveloppe couvre gap ET contact). Bornes confirmées humain 2026-06-21. Force CÂBLÉE = TF du swing observé = chartIdx (normal, ni +1 ni −1 ; order-block.md L926) ; désact −4. Tag WB. =====
 var int lastWbBar = na
 if useWick and barstate.isconfirmed
     int szw = array.size(cBar)
@@ -715,11 +718,13 @@ if useWick and barstate.isconfirmed
         if not na(bestBar)
             if na(lastWbBar) or bestBar != lastWbBar
                 lastWbBar := bestBar
+                // FORCE WB = TF du swing OBSERVÉ = chartIdx (canon order-block.md L926 « force = celle du TF sur lequel le swing est observé = même niveau qu'une FVG/OB du même TF » ; verbatim NSs7Sa8VTSI 02:26:41). NORMAL, ni +1 ni −1 (≠ ABA : le canon ne dit JAMAIS « un temps au-dessus » pour le WB). Désact −4 (zone normale, o.aba=false). Réserve : le verbatim est une phrase de nomination, « = force » est la lecture du wiki.
+                int wbF = chartIdx
                 color wcol = wbBull ? demCol : supCol
                 string wside = wbBull ? "BULL ▲" : "BEAR ▼"
                 box wbx = box.new(bestBar, wbTop, bar_index, wbBot, xloc=xloc.bar_index, bgcolor=color.new(wcol, 78), border_color=color.new(wcol, 10), border_style=line.style_dashed, border_width=2)
-                label wlb = label.new(bar_index + 1, (wbTop + wbBot) / 2.0, showLbl ? (wside + "  ·  WB") : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(wcol, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
-                array.push(obs, OB.new(wbx, wlb, wbTop, wbBot, wbBull, wcol, 78, 0, false, wbBull ? wbTop : wbBot, false, 0, false, true))
+                label wlb = label.new(bar_index + 1, (wbTop + wbBot) / 2.0, showLbl ? (wside + (showF ? "  ·  " + f_tfName(wbF) : "") + "  ·  WB") : "", xloc=xloc.bar_index, color=color.new(color.white, 100), textcolor=color.new(wcol, 0), style=label.style_label_left, size=tSize, textalign=text.align_left)
+                array.push(obs, OB.new(wbx, wlb, wbTop, wbBot, wbBull, wcol, 78, 0, false, wbBull ? wbTop : wbBot, false, wbF, false, false))
                 f_purge(obs)
 
 if barstate.isconfirmed
