@@ -14,62 +14,12 @@
     "reste_seuil": 0.45,
     "measure_tf": "zone",
     "start": "2024-06-01",
-    "end": "2024-09-01"
+    "end": "2024-09-01",
+    "NOTE": "relabel canon-first (cloture=cassure structurelle); reste=robustesse hors-canon; reconstruit depuis events.csv"
   },
-  "n_zones": 44,
-  "n_tested": 44,
   "n_complete": 44,
   "metrics": {
-    "force=finale | label=reste": {
-      "n": 44,
-      "cells": {
-        "TIENT->TIENT": 0,
-        "TIENT->CASSE": 8,
-        "CASSE->TIENT": 9,
-        "CASSE->CASSE": 27
-      },
-      "base_rate_tient": 0.20454545454545456,
-      "hit_rate": 0.6136363636363636,
-      "trivial_acc": 0.7954545454545454,
-      "lift_vs_trivial": -0.18181818181818177,
-      "n_pred_tient": 8,
-      "n_pred_casse": 36,
-      "P(TIENT|pred=TIENT)": 0.0,
-      "CI95_pred_tient": [
-        0.0,
-        0.3244156195108769
-      ],
-      "P(TIENT|pred=CASSE)": 0.25,
-      "CI95_pred_casse": [
-        0.13750323839225387,
-        0.41070767683203424
-      ],
-      "z_diff": -1.5856499343441839,
-      "pval_diff": 0.11281874216705878,
-      "dose_response": {
-        "delta<=-2": {
-          "n": 4,
-          "p_tient": 0.0
-        },
-        "delta=-1": {
-          "n": 4,
-          "p_tient": 0.0
-        },
-        "delta=0": {
-          "n": 19,
-          "p_tient": 0.2631578947368421
-        },
-        "delta=+1": {
-          "n": 8,
-          "p_tient": 0.375
-        },
-        "delta>=+2": {
-          "n": 9,
-          "p_tient": 0.1111111111111111
-        }
-      }
-    },
-    "force=finale | label=r10": {
+    "force=finale | label=canon": {
       "n": 44,
       "cells": {
         "TIENT->TIENT": 4,
@@ -118,56 +68,56 @@
         }
       }
     },
-    "force=brute | label=reste": {
+    "force=finale | label=reste_noncanon": {
       "n": 44,
       "cells": {
         "TIENT->TIENT": 0,
-        "TIENT->CASSE": 7,
+        "TIENT->CASSE": 8,
         "CASSE->TIENT": 9,
-        "CASSE->CASSE": 28
+        "CASSE->CASSE": 27
       },
       "base_rate_tient": 0.20454545454545456,
-      "hit_rate": 0.6363636363636364,
+      "hit_rate": 0.6136363636363636,
       "trivial_acc": 0.7954545454545454,
-      "lift_vs_trivial": -0.15909090909090906,
-      "n_pred_tient": 7,
-      "n_pred_casse": 37,
+      "lift_vs_trivial": -0.18181818181818177,
+      "n_pred_tient": 8,
+      "n_pred_casse": 36,
       "P(TIENT|pred=TIENT)": 0.0,
       "CI95_pred_tient": [
         0.0,
-        0.35433884297520657
+        0.3244156195108769
       ],
-      "P(TIENT|pred=CASSE)": 0.24324324324324326,
+      "P(TIENT|pred=CASSE)": 0.25,
       "CI95_pred_casse": [
-        0.13361203432663304,
-        0.4011760249070895
+        0.13750323839225387,
+        0.41070767683203424
       ],
-      "z_diff": -1.46305862512086,
-      "pval_diff": 0.14345133800317678,
+      "z_diff": -1.5856499343441839,
+      "pval_diff": 0.11281874216705878,
       "dose_response": {
         "delta<=-2": {
           "n": 4,
           "p_tient": 0.0
         },
         "delta=-1": {
-          "n": 3,
+          "n": 4,
           "p_tient": 0.0
         },
         "delta=0": {
-          "n": 20,
-          "p_tient": 0.3
+          "n": 19,
+          "p_tient": 0.2631578947368421
         },
         "delta=+1": {
-          "n": 9,
-          "p_tient": 0.3333333333333333
+          "n": 8,
+          "p_tient": 0.375
         },
         "delta>=+2": {
-          "n": 8,
-          "p_tient": 0.0
+          "n": 9,
+          "p_tient": 0.1111111111111111
         }
       }
     },
-    "force=brute | label=r10": {
+    "force=brute | label=canon": {
       "n": 44,
       "cells": {
         "TIENT->TIENT": 3,
@@ -213,6 +163,55 @@
         "delta>=+2": {
           "n": 8,
           "p_tient": 0.875
+        }
+      }
+    },
+    "force=brute | label=reste_noncanon": {
+      "n": 44,
+      "cells": {
+        "TIENT->TIENT": 0,
+        "TIENT->CASSE": 7,
+        "CASSE->TIENT": 9,
+        "CASSE->CASSE": 28
+      },
+      "base_rate_tient": 0.20454545454545456,
+      "hit_rate": 0.6363636363636364,
+      "trivial_acc": 0.7954545454545454,
+      "lift_vs_trivial": -0.15909090909090906,
+      "n_pred_tient": 7,
+      "n_pred_casse": 37,
+      "P(TIENT|pred=TIENT)": 0.0,
+      "CI95_pred_tient": [
+        0.0,
+        0.35433884297520657
+      ],
+      "P(TIENT|pred=CASSE)": 0.24324324324324326,
+      "CI95_pred_casse": [
+        0.13361203432663304,
+        0.4011760249070895
+      ],
+      "z_diff": -1.46305862512086,
+      "pval_diff": 0.14345133800317678,
+      "dose_response": {
+        "delta<=-2": {
+          "n": 4,
+          "p_tient": 0.0
+        },
+        "delta=-1": {
+          "n": 3,
+          "p_tient": 0.0
+        },
+        "delta=0": {
+          "n": 20,
+          "p_tient": 0.3
+        },
+        "delta=+1": {
+          "n": 9,
+          "p_tient": 0.3333333333333333
+        },
+        "delta>=+2": {
+          "n": 8,
+          "p_tient": 0.0
         }
       }
     }

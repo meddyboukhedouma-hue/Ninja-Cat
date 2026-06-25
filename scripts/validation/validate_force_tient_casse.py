@@ -35,16 +35,35 @@ force_zone     = palier de la sequence active qui a CREE la zone OB (snapshot a 
 force_courante = palier de la sequence active ARRIVANT a la zone (snapshot au 1er retest).
 
 ================================================================================
-LABEL D'ISSUE  (impose par la mission, DOCTRINE-FIDELE)
+LABEL D'ISSUE  (RECADRE AU CANON — vault-verifie 2026-06-25, doctrine-vault-operator)
 ================================================================================
-A la penetration la plus profonde du 1er test, mesurer le « reste » (epaisseur
-residuelle non consommee, en x ATR233 du TF de la zone) :
+*** LABEL CANON = CASSURE STRUCTURELLE PAR CLOTURE DE CORPS ***
+La mort STRUCTURELLE d'un Order Block au retest se valide par la CLOTURE du corps
+d'une bougie AU-DELA du bord lointain de la zone — PAS par une meche.
+  - CASSE  <=> une bougie CLOTURE (corps) au-dela du bord lointain pendant le test.
+  - TIENT  <=> sinon.
+Source : cassage-de-structure.md L273-283 `vraie_cassure_corps_cloture`
+(yiy47FOMIOk @00:12:33 « c'est la bougie de cloture qui compte ») ;
+order-block.md L406-410 `ob_invalide_si_bougie_ferme_au_dessus_meche`
+(Kp68Daasc6I @01:09:34 « si la bougie ferme au-dessus de la meche, ca c'est plus rien »).
+
+*** FAUSSE CASSURE (meche seule) = GRAB, PAS UNE MORT ***
+Une meche qui PERCE le bord lointain puis dont le corps REVIENT (close en-deca) est,
+au canon, une FAUSSE CASSURE / grab de liquidite : elle ne tue PAS la zone, elle
+« perd la moitie de sa valeur » (force ÷2). On la FLAGUE (champ `fausse_cassure`)
+mais elle compte TIENT pour la cassure structurelle.
+Source : fakeout.md ; cassage-de-structure.md L289-300 `fausse_cassure_meche_seule`
+(FFxKFvuYxrM @00:55:50 « il perdrait la moitie de sa valeur »).
+
+*** LABEL `reste` (0.45 ATR) = ROBUSTESSE HORS-CANON, conserve mais etiquete ***
+Le « reste » (epaisseur residuelle a la penetration la plus profonde, en x ATR233) :
   - zone DEMANDE (bull) : reste = (min_low_test  - bas_zone)  / ATR233
   - zone OFFRE   (bear) : reste = (haut_zone - max_high_test)  / ATR233
-  - TIENT  <=> reste >= 0.45 ; CASSE <=> reste < 0.45  (ou cloture au-dela du bord lointain).
-Source : OB_DETECTION_SPEC §T1-bis(b), xFnFjopAzz8 @ 01:53:18-41.
-Contre-test R10 (label alternatif) : CASSE <=> une bougie CLOTURE au-dela du
-bord lointain pendant le test ; sinon TIENT. (§T1-bis(c), R10.)
+ATTENTION : le seuil 0.45 ATR est, dans le canon, le seuil de RETESTABILITE d'une
+FVG/imbalance apres double cassage (imbalance-gagner-chaque-trade.md L29-31,
+xFnFjopAzz8 @01:52-53), PAS un critere de mort d'OB. Le vault ne formule AUCUN
+seuil ATR de mort d'OB. On le garde comme label de ROBUSTESSE explicitement
+NON-CANON (sensibilite a une definition geometrique plus dure), jamais comme reference.
 
 ================================================================================
 PROTOCOLE ANTI-LOOK-AHEAD (strict)
@@ -221,9 +240,10 @@ class ZoneEvent:
     cloture_au_dela: Optional[bool] = None
     incursion_bars: Optional[int] = None
     incursion_capped: Optional[bool] = None
+    fausse_cassure: Optional[bool] = None  # meche perce le bord lointain mais corps revient (grab, force ÷2)
     # labels d'issue
-    issue_reste: str = ""     # TIENT / CASSE  (label reste 0.45)
-    issue_r10: str = ""       # TIENT / CASSE  (label cloture bord lointain)
+    issue_canon: str = ""           # TIENT / CASSE  — CANON : cassure structurelle = cloture corps au-dela
+    issue_reste_noncanon: str = ""  # TIENT / CASSE  — ROBUSTESSE hors-canon (seuil 0.45 ATR importe des FVG)
 
 
 # ---------------------------------------------------------------------------
@@ -346,9 +366,13 @@ def find_first_retest_and_label(ev: ZoneEvent, dfs: dict[str, pd.DataFrame]) -> 
     ev.cloture_au_dela = bool(cloture_au_dela)
     ev.incursion_bars = int(n_bars)
     ev.incursion_capped = bool(capped)
+    # FLAG fausse cassure (canon) : meche au-dela du bord lointain (reste<0) SANS cloture de corps au-dela
+    ev.fausse_cassure = bool((ev.reste_atr < 0) and (not ev.cloture_au_dela))
+    # LABEL CANON : cassure structurelle = une bougie CLOTURE (corps) au-dela du bord lointain
+    ev.issue_canon = "CASSE" if ev.cloture_au_dela else "TIENT"
+    # LABEL ROBUSTESSE (hors-canon) : seuil 0.45 ATR (importe des FVG, voir docstring)
     tient_reste = (ev.reste_atr >= RESTE_SEUIL) and (not ev.cloture_au_dela)
-    ev.issue_reste = "TIENT" if tient_reste else "CASSE"
-    ev.issue_r10 = "CASSE" if ev.cloture_au_dela else "TIENT"
+    ev.issue_reste_noncanon = "TIENT" if tient_reste else "CASSE"
     return True
 
 
@@ -401,7 +425,9 @@ def two_prop_z(k1, n1, k2, n2):
 
 def analyse(events: list[ZoneEvent], force_kind: str, label_kind: str,
             seuil: float = RESTE_SEUIL) -> dict:
-    """force_kind in {finale, brute} ; label_kind in {reste, r10}.
+    """force_kind in {finale, brute} ; label_kind in {canon, reste_noncanon}.
+    label CANON = cassure structurelle (cloture corps au-dela du bord lointain).
+    label reste_noncanon = robustesse, seuil 0.45 ATR (hors-canon, cf. docstring).
     Predicteur canon : predit CASSE si (force_courante - force_zone) >= 0, sinon TIENT.
     """
     rows = []
@@ -410,12 +436,12 @@ def analyse(events: list[ZoneEvent], force_kind: str, label_kind: str,
         fc = ev.force_cour_finale_idx if force_kind == "finale" else ev.force_cour_brute_idx
         if fz is None or fc is None:
             continue
-        if label_kind == "reste":
+        if label_kind == "reste_noncanon":
             if ev.reste_atr is None:
                 continue
             tient = (ev.reste_atr >= seuil) and (not ev.cloture_au_dela)
             real = "TIENT" if tient else "CASSE"
-        else:
+        else:  # canon : cassure structurelle = cloture corps au-dela
             if ev.cloture_au_dela is None:
                 continue
             real = "CASSE" if ev.cloture_au_dela else "TIENT"
@@ -470,8 +496,13 @@ def print_report(events: list[ZoneEvent]) -> dict:
     print("\n" + "=" * 78)
     print("RESULTATS — table de contingence predit{tient/casse} x reel{tient/casse}")
     print("=" * 78)
+    n_fc = sum(1 for e in events if e.fausse_cassure)
+    n_close = sum(1 for e in events if e.cloture_au_dela)
+    print(f"\nFAUSSE CASSURE (meche perce le bord lointain, corps revient — grab/÷2 canon) : "
+          f"{n_fc}/{len(events)}")
+    print(f"VRAIE CASSURE  (cloture corps au-dela — label CANON) : {n_close}/{len(events)}")
     for force_kind in ["finale", "brute"]:
-        for label_kind in ["reste", "r10"]:
+        for label_kind in ["canon", "reste_noncanon"]:
             key = f"force={force_kind} | label={label_kind}"
             a = analyse(events, force_kind, label_kind)
             res[key] = a
@@ -500,11 +531,11 @@ def print_report(events: list[ZoneEvent]) -> dict:
 
 def sensitivity_threshold(events: list[ZoneEvent]) -> dict:
     print("\n" + "=" * 78)
-    print("ROBUSTESSE — sensibilite au seuil 'reste' (force finale, label reste)")
+    print("ROBUSTESSE (HORS-CANON) — sensibilite au seuil 'reste' (force finale, label reste_noncanon)")
     print("=" * 78)
     out = {}
     for seuil in [0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60]:
-        a = analyse(events, "finale", "reste", seuil=seuil)
+        a = analyse(events, "finale", "reste_noncanon", seuil=seuil)
         if a.get("n", 0) == 0:
             continue
         out[f"{seuil:.2f}"] = {
