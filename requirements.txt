@@ -14,3 +14,7 @@ ccxt==4.5.53
 
 # Validation / recherche (CV, meta-labeling)
 scikit-learn==1.7.2
+
+# Moteur de cartographie / force (ressources/scripts/cartographie.py)
+# tire numba + llvmlite en transitif (compat numpy 2.2.6 OK).
+smartmoneyconcepts==0.0.27
