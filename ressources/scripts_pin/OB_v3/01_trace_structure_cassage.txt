@@ -9,7 +9,8 @@
 //   overlay=false : sous-fenêtre = COURBE ATR ; structure forcée sur les prix (force_overlay).
 indicator("Structure HH/HL/LH/LL — cassage", overlay=false, max_lines_count=500, max_labels_count=500)
 
-F       = input.int(2, "Fractal — repérage des points (petit)", minval=1, maxval=10, group="Structure")
+// repérage local minimal d'un haut/bas (interne, non réglable) — le TRACÉ reste défini par les CASSURES
+int F   = 2
 lineCol = input.color(color.new(color.gray, 0),  "Zigzag",  group="Style")
 colUp   = input.color(color.new(color.teal, 0),  "HH / HL", group="Style")
 colDn   = input.color(color.new(color.red, 0),   "LH / LL", group="Style")
