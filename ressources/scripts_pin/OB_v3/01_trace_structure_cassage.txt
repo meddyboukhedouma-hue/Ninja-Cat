@@ -1,16 +1,12 @@
 //@version=6
-// Structure HH/HL/LH/LL — pilotée par le CASSAGE DE STRUCTURE, points repérés par un petit fractal.
-//   F (petit) = repère les sommets/creux LOCAUX candidats. Ce n'est PAS une « longueur de swing » :
-//   le tracé n'est pas fait des pivots eux-mêmes, mais des CASSURES.
-//   Jambe haussière : on suit le plus-haut ; elle se TERMINE quand close < dernier CREUX fractal
-//     (niveau protégé qui RATCHET avec les nouveaux creux) → l'extrême de la jambe devient un SOMMET (HH/LH).
-//   Jambe baissière : symétrique ; close > dernier SOMMET fractal → l'extrême devient un CREUX (HL/LL).
-//   = mécanique SWING DEV (cassage de structure) resserrée, dans les deux sens.
-//   overlay=false : sous-fenêtre = COURBE ATR ; structure forcée sur les prix (force_overlay).
+// Structure HH/HL/LH/LL — tracé piloté par les CASSURES.
+// HONNÊTE : repérage local 2 bougies (ph/pl) pour savoir OÙ est un haut/bas candidat ;
+// le tracé lui-même = les cassures (clôture au-delà du dernier opposé, niveau qui ratchete).
+// NB : la version 100% sans repérage (cassure pure contre le dernier point) est DÉGÉNÉRÉE
+//      (se bloque après ~1 point en tendance, ne dessine rien) — vérifié en direct. Le repérage
+//      2-barres est le minimum mathématique pour que le niveau à casser suive la structure.
 indicator("Structure HH/HL/LH/LL — cassage", overlay=false, max_lines_count=500, max_labels_count=500)
 
-// repérage local minimal d'un haut/bas (interne, non réglable) — le TRACÉ reste défini par les CASSURES
-int F   = 2
 lineCol = input.color(color.new(color.gray, 0),  "Zigzag",  group="Style")
 colUp   = input.color(color.new(color.teal, 0),  "HH / HL", group="Style")
 colDn   = input.color(color.new(color.red, 0),   "LH / LL", group="Style")
@@ -29,83 +25,75 @@ f_ma(float src, int l) =>
 atrV = f_ma(ta.tr(true), atrLen)
 plot(atrV, "ATR", color=atrColIn, linewidth=2)
 
-// ════════ STRUCTURE PAR CASSAGE (fractal + ratchet) ════════
-ph = ta.pivothigh(high, F, F)
-pl = ta.pivotlow(low,  F, F)
+ph = ta.pivothigh(high, 2, 2)
+pl = ta.pivotlow(low,  2, 2)
 
-var float upper     = na   // dernier SOMMET fractal (cassé pour finir une jambe baissière)
+var float upper     = na
 var int   upperT    = na
-var float lower     = na   // dernier CREUX fractal (cassé pour finir une jambe haussière)
+var float lower     = na
 var int   lowerT    = na
-
-var int   trend     = 0    // 1 = jambe haussière, -1 = baissière, 0 = amorçage
-var float curExt    = na   // extrême de la jambe en cours
+var int   trend     = 0
+var float curExt    = na
 var int   curExtT   = na
-var float prevHigh  = na   // dernier SOMMET confirmé (réf HH/LH)
-var float prevLow   = na   // dernier CREUX confirmé (réf HL/LL)
-var float lastPtPx  = na   // dernier point de structure (ancre du segment)
+var float prevHigh  = na
+var float prevLow   = na
+var float lastPtPx  = na
 var int   lastPtT   = na
 
 f_seg(int t1, float p1, int t2, float p2) =>
     line.new(t1, p1, t2, p2, xloc=xloc.bar_time, color=lineCol, width=lineW, force_overlay=true)
 
-// niveaux fractals (ratchet)
 if not na(ph)
     upper  := ph
-    upperT := time[F]
+    upperT := time[2]
 if not na(pl)
     lower  := pl
-    lowerT := time[F]
+    lowerT := time[2]
 
-// amorçage : tendance = le fractal le plus récent
 if trend == 0 and not na(upper) and not na(lower)
     if upperT > lowerT
-        trend    := 1
-        curExt   := high
-        curExtT  := time
-        prevLow  := lower
+        trend := 1
+        curExt := high
+        curExtT := time
+        prevLow := lower
         lastPtPx := lower
-        lastPtT  := lowerT
+        lastPtT := lowerT
     else
-        trend    := -1
-        curExt   := low
-        curExtT  := time
+        trend := -1
+        curExt := low
+        curExtT := time
         prevHigh := upper
         lastPtPx := upper
-        lastPtT  := upperT
+        lastPtT := upperT
 
-// extension de la jambe en cours
 if trend == 1 and high > curExt
-    curExt  := high
+    curExt := high
     curExtT := time
 if trend == -1 and low < curExt
-    curExt  := low
+    curExt := low
     curExtT := time
 
-// fin de jambe HAUSSIÈRE → close sous le dernier creux fractal → confirme un SOMMET
 if trend == 1 and not na(lower) and close < lower
     isHH = na(prevHigh) or curExt > prevHigh
-    cc   = isHH ? colUp : colDn
+    cc = isHH ? colUp : colDn
     if not na(lastPtT)
         f_seg(lastPtT, lastPtPx, curExtT, curExt)
     label.new(curExtT, curExt, isHH ? "HH" : "LH", xloc=xloc.bar_time, yloc=yloc.price, style=label.style_label_down, color=color.new(cc, 85), textcolor=cc, size=size.small, force_overlay=true)
     prevHigh := curExt
     lastPtPx := curExt
-    lastPtT  := curExtT
-    trend    := -1
-    curExt   := low
-    curExtT  := time
-
-// fin de jambe BAISSIÈRE → close au-dessus du dernier sommet fractal → confirme un CREUX
-if trend == -1 and not na(upper) and close > upper
+    lastPtT := curExtT
+    trend := -1
+    curExt := low
+    curExtT := time
+else if trend == -1 and not na(upper) and close > upper
     isHL = na(prevLow) or curExt > prevLow
-    cc   = isHL ? colUp : colDn
+    cc = isHL ? colUp : colDn
     if not na(lastPtT)
         f_seg(lastPtT, lastPtPx, curExtT, curExt)
     label.new(curExtT, curExt, isHL ? "HL" : "LL", xloc=xloc.bar_time, yloc=yloc.price, style=label.style_label_up, color=color.new(cc, 85), textcolor=cc, size=size.small, force_overlay=true)
-    prevLow  := curExt
+    prevLow := curExt
     lastPtPx := curExt
-    lastPtT  := curExtT
-    trend    := 1
-    curExt   := high
-    curExtT  := time
+    lastPtT := curExtT
+    trend := 1
+    curExt := high
+    curExtT := time
