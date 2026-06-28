@@ -1,11 +1,9 @@
 //@version=6
-// Structure HH/HL/LH/LL — tracé piloté par les CASSURES.
-// HONNÊTE : repérage local 2 bougies (ph/pl) pour savoir OÙ est un haut/bas candidat ;
-// le tracé lui-même = les cassures (clôture au-delà du dernier opposé, niveau qui ratchete).
-// NB : la version 100% sans repérage (cassure pure contre le dernier point) est DÉGÉNÉRÉE
-//      (se bloque après ~1 point en tendance, ne dessine rien) — vérifié en direct. Le repérage
-//      2-barres est le minimum mathématique pour que le niveau à casser suive la structure.
-indicator("Structure HH/HL/LH/LL — cassage", overlay=false, max_lines_count=500, max_labels_count=500)
+// Structure HH/HL/LH/LL — tracé piloté par les CASSURES. overlay=true : tout sur le prix.
+// Les "points de structure" = creux/sommets locaux 2 bougies ; le niveau cassé ratchete ;
+// le point = plus-haut/plus-bas depuis la dernière cassure ; cassure = clôture au-delà du dernier creux/sommet.
+// (overlay=true + line/label SANS force_overlay : dessins nativement sur le prix ; ATR en data_window.)
+indicator("Structure HH/HL/LH/LL — cassage", overlay=true, max_lines_count=500, max_labels_count=500)
 
 lineCol = input.color(color.new(color.gray, 0),  "Zigzag",  group="Style")
 colUp   = input.color(color.new(color.teal, 0),  "HH / HL", group="Style")
@@ -14,7 +12,6 @@ lineW   = input.int(2, "Épaisseur", minval=1, maxval=5, group="Style")
 
 atrSmooth = input.string("SMA", "Lissage ATR", options=["RMA", "SMA", "EMA", "WMA"], group="ATR")
 atrLen    = input.int(233, "Longueur ATR", minval=1, group="ATR")
-atrColIn  = input.color(color.new(#B71C1C, 0), "Couleur ATR", group="ATR")
 
 f_ma(float src, int l) =>
     switch atrSmooth
@@ -23,7 +20,7 @@ f_ma(float src, int l) =>
         "EMA" => ta.ema(src, l)
         => ta.wma(src, l)
 atrV = f_ma(ta.tr(true), atrLen)
-plot(atrV, "ATR", color=atrColIn, linewidth=2)
+plot(atrV, "ATR", color=color.new(color.gray, 100), display=display.data_window)
 
 ph = ta.pivothigh(high, 2, 2)
 pl = ta.pivotlow(low,  2, 2)
@@ -41,7 +38,7 @@ var float lastPtPx  = na
 var int   lastPtT   = na
 
 f_seg(int t1, float p1, int t2, float p2) =>
-    line.new(t1, p1, t2, p2, xloc=xloc.bar_time, color=lineCol, width=lineW, force_overlay=true)
+    line.new(t1, p1, t2, p2, xloc=xloc.bar_time, color=lineCol, width=lineW)
 
 if not na(ph)
     upper  := ph
@@ -78,7 +75,7 @@ if trend == 1 and not na(lower) and close < lower
     cc = isHH ? colUp : colDn
     if not na(lastPtT)
         f_seg(lastPtT, lastPtPx, curExtT, curExt)
-    label.new(curExtT, curExt, isHH ? "HH" : "LH", xloc=xloc.bar_time, yloc=yloc.price, style=label.style_label_down, color=color.new(cc, 85), textcolor=cc, size=size.small, force_overlay=true)
+    label.new(curExtT, curExt, isHH ? "HH" : "LH", xloc=xloc.bar_time, yloc=yloc.price, style=label.style_label_down, color=color.new(cc, 85), textcolor=cc, size=size.small)
     prevHigh := curExt
     lastPtPx := curExt
     lastPtT := curExtT
@@ -90,7 +87,7 @@ else if trend == -1 and not na(upper) and close > upper
     cc = isHL ? colUp : colDn
     if not na(lastPtT)
         f_seg(lastPtT, lastPtPx, curExtT, curExt)
-    label.new(curExtT, curExt, isHL ? "HL" : "LL", xloc=xloc.bar_time, yloc=yloc.price, style=label.style_label_up, color=color.new(cc, 85), textcolor=cc, size=size.small, force_overlay=true)
+    label.new(curExtT, curExt, isHL ? "HL" : "LL", xloc=xloc.bar_time, yloc=yloc.price, style=label.style_label_up, color=color.new(cc, 85), textcolor=cc, size=size.small)
     prevLow := curExt
     lastPtPx := curExt
     lastPtT := curExtT
